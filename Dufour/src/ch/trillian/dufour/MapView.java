@@ -41,15 +41,21 @@ public class MapView extends View {
   private Paint crossPaint;
 
   // view size in pixel
-  int sizeX;
-  int sizeY;
+  private int sizeX;
+  private int sizeY;
 
   // position and zoom
   // pixelX = (positionX + x) * scale 
   // x = pixelX / scale - positionX
-  float positionX = 500;
-  float positionY = 500;
-  float scale = 1.0f;
+  private float positionX = 500;
+  private float positionY = 500;
+  private float scale = 1.0f;
+
+  // min and max coordinates of tiles on screen
+  private int minTileX;
+  private int maxTileX;
+  private int minTileY;
+  private int maxTileY;
 
   // stuff for motion detection
   float lastTouchX;
@@ -105,7 +111,7 @@ public class MapView extends View {
       float newScale = scale * detector.getScaleFactor();
 
       // Don't let the object get too small or too large.
-      newScale = Math.max(0.2f, Math.min(newScale, 10.0f));
+      newScale = Math.max(0.25f, Math.min(newScale, 4.0f));
 
       float focusX = detector.getFocusX() / scale - positionX;
       float focusY = detector.getFocusY() / scale - positionY;
@@ -220,6 +226,8 @@ public class MapView extends View {
 
     super.onDraw(canvas);
 
+    Log.w("TRILLIAN", "onDraw: " + System.currentTimeMillis());
+    
     if (location != null) {
       textPaint.setTextSize(textSize / 2);
       float y = 0 - textPaint.ascent();
@@ -244,10 +252,6 @@ public class MapView extends View {
     canvas.scale(scale, scale);
     canvas.translate(positionX, positionY);
 
-    // Draw the label text
-    textPaint.setTextSize(textSize);
-    canvas.drawText(labelText, 0, 0 - textPaint.descent(), textPaint);
-
     if (bitmap != null) {
       canvas.drawBitmap(bitmap, -256, 0, crossPaint);
     }
@@ -260,33 +264,31 @@ public class MapView extends View {
     canvas.drawLine(0, -1000, 0, 1000, gridLinePaint);
 
     // draw grid
-    int minTileX = -2;
-    int maxTileX = 4;
-    int minTileY = -3;
-    int maxTileY = 6;
+    updateTilesMinMax();
+    
     float incX = layer.getTileSizeX();
     float incY = layer.getTileSizeY();
     float minX = minTileX * incX;
-    float maxX = maxTileX * incX;
+    float maxX = (maxTileX + 1) * incX;
     float minY = minTileY * incY;
-    float maxY = maxTileY * incY;
+    float maxY = (maxTileY + 1) * incY;
 
     float x = minX;
-    for(int i = minTileX; i <= maxTileX; i++) {
+    for(int i = minTileX; i <= maxTileX + 1; i++) {
       canvas.drawLine(x, minY, x, maxY, gridLinePaint);
       x += incX;
     }
     float y = minY;
-    for(int j = minTileY; j <= maxTileY; j++) {
+    for(int j = minTileY; j <= maxTileY + 1; j++) {
       canvas.drawLine(minX, y, maxX, y, gridLinePaint);
       y += incY;
     }
     
     // draw grid coordinates
     x = minX + incX / 2;
-    for(int i = minTileX; i < maxTileX; i++) {
+    for(int i = minTileX; i <= maxTileX; i++) {
       y = minY + incY / 2 + gridTextPaint.getTextSize() / 2;
-      for(int j = minTileY; j < maxTileY; j++) {
+      for(int j = minTileY; j <= maxTileY; j++) {
         canvas.drawText("(" + i + "," + j + ")", x, y, gridTextPaint);
         y += incY;
       }
@@ -305,6 +307,14 @@ public class MapView extends View {
     canvas.restore();
   }
 
+  private void updateTilesMinMax() {
+    
+    minTileX = (int) Math.floor(-positionX / layer.getTileSizeX());
+    maxTileX = (int) Math.floor((sizeX / scale - positionX) / layer.getTileSizeX());
+    minTileY = (int) Math.floor(-positionY / layer.getTileSizeY());
+    maxTileY = (int) Math.floor((sizeY / scale - positionY) / layer.getTileSizeY());
+  }
+  
   public String getLabelText() {
 
     return labelText;
