@@ -2,6 +2,8 @@
 
     <declare-styleable name="MapView">
         <attr name="textSize" format="dimension" />
+        <attr name="gridStroke" format="dimension" />
+        <attr name="gridTextSize" format="dimension" />
         <attr name="crossSize" format="dimension" />
         <attr name="crossStroke" format="dimension" />
     </declare-styleable>

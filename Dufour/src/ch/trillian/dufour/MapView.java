@@ -2,14 +2,11 @@ package ch.trillian.dufour;
 
 import java.text.SimpleDateFormat;
 
-import ch.trillian.dufour.R;
-
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.location.Location;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -22,8 +19,15 @@ public class MapView extends View {
 
   private static final int INVALID_POINTER_ID = -1;
 
+  // the map 
+  private Map map;
+  private Layer layer;
+  private int layerIndex;
+  
   // attributes
   private int textSize;
+  private int gridStroke;
+  private int gridTextSize;
   private int crossSize;
   private int crossStroke;
 
@@ -32,6 +36,8 @@ public class MapView extends View {
 
   // painters and paths
   private Paint textPaint;
+  private Paint gridLinePaint;
+  private Paint gridTextPaint;
   private Paint crossPaint;
 
   // view size in pixel
@@ -72,6 +78,8 @@ public class MapView extends View {
     TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.MapView, 0, 0);
     try {
       textSize = a.getDimensionPixelSize(R.styleable.MapView_textSize, 10);
+      gridStroke = a.getDimensionPixelSize(R.styleable.MapView_gridStroke, 1);
+      gridTextSize = a.getDimensionPixelSize(R.styleable.MapView_gridTextSize, 10);
       crossSize = a.getDimensionPixelSize(R.styleable.MapView_crossSize, 10);
       crossStroke = a.getDimensionPixelSize(R.styleable.MapView_crossStroke, 1);
     } finally {
@@ -239,12 +247,52 @@ public class MapView extends View {
     // Draw the label text
     textPaint.setTextSize(textSize);
     canvas.drawText(labelText, 0, 0 - textPaint.descent(), textPaint);
-    canvas.drawLine(-1000, 0, 1000, 0, textPaint);
-    canvas.drawLine(0, -1000, 0, 1000, textPaint);
 
     if (bitmap != null) {
       canvas.drawBitmap(bitmap, -256, 0, crossPaint);
     }
+    
+    // scale grid stroke size
+    gridLinePaint.setStrokeWidth(gridStroke / scale);
+
+    // draw axes
+    canvas.drawLine(-1000, 0, 1000, 0, gridLinePaint);
+    canvas.drawLine(0, -1000, 0, 1000, gridLinePaint);
+
+    // draw grid
+    int minTileX = -2;
+    int maxTileX = 4;
+    int minTileY = -3;
+    int maxTileY = 6;
+    float incX = layer.getTileSizeX();
+    float incY = layer.getTileSizeY();
+    float minX = minTileX * incX;
+    float maxX = maxTileX * incX;
+    float minY = minTileY * incY;
+    float maxY = maxTileY * incY;
+
+    float x = minX;
+    for(int i = minTileX; i <= maxTileX; i++) {
+      canvas.drawLine(x, minY, x, maxY, gridLinePaint);
+      x += incX;
+    }
+    float y = minY;
+    for(int j = minTileY; j <= maxTileY; j++) {
+      canvas.drawLine(minX, y, maxX, y, gridLinePaint);
+      y += incY;
+    }
+    
+    // draw grid coordinates
+    x = minX + incX / 2;
+    for(int i = minTileX; i < maxTileX; i++) {
+      y = minY + incY / 2 + gridTextPaint.getTextSize() / 2;
+      for(int j = minTileY; j < maxTileY; j++) {
+        canvas.drawText("(" + i + "," + j + ")", x, y, gridTextPaint);
+        y += incY;
+      }
+      x += incX;
+    }
+    
     
     canvas.restore();
 
@@ -340,8 +388,28 @@ public class MapView extends View {
     textPaint.setStrokeWidth(1);
     textPaint.setTextAlign(Paint.Align.LEFT);
 
+    gridLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    gridLinePaint.setColor(0xFF000000);
+    gridLinePaint.setStyle(Paint.Style.STROKE);
+    gridLinePaint.setStrokeWidth(crossStroke);
+
+    gridTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    gridTextPaint.setColor(0xFF808080);
+    gridTextPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+    gridTextPaint.setTextSize(gridTextSize);
+    gridTextPaint.setTextAlign(Paint.Align.CENTER);
+
     crossPaint = new Paint(0);
     crossPaint.setStyle(Paint.Style.STROKE);
     crossPaint.setStrokeWidth(crossStroke);
+  }
+  
+  public void setMap(Map map, int layerIndex) {
+    
+    this.map = map;
+    this.layerIndex = layerIndex;
+    this.layer = map.getLayers()[layerIndex];
+    
+    invalidate();
   }
 }
