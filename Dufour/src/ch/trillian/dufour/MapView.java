@@ -12,6 +12,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.location.Location;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -23,15 +24,15 @@ public class MapView extends View {
 
   // attributes
   private int textSize;
+  private int crossSize;
+  private int crossStroke;
 
   private String labelText = "This is a label";
   private Bitmap bitmap = null;
 
   // painters and paths
   private Paint textPaint;
-  private Paint linePaint;
-  private Paint pointPaint;
-  private Path linePath;
+  private Paint crossPaint;
 
   // view size in pixel
   int sizeX;
@@ -71,9 +72,15 @@ public class MapView extends View {
     TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.MapView, 0, 0);
     try {
       textSize = a.getDimensionPixelSize(R.styleable.MapView_textSize, 10);
+      crossSize = a.getDimensionPixelSize(R.styleable.MapView_crossSize, 10);
+      crossStroke = a.getDimensionPixelSize(R.styleable.MapView_crossStroke, 1);
     } finally {
       a.recycle();
     }
+
+    Log.w("TRILLIAN", "textSize=" + textSize);
+    Log.w("TRILLIAN", "crossSize=" + crossSize);
+    Log.w("TRILLIAN", "crossStroke=" + crossStroke);
 
     // init painters
     initPainters();
@@ -236,22 +243,17 @@ public class MapView extends View {
     canvas.drawLine(0, -1000, 0, 1000, textPaint);
 
     if (bitmap != null) {
-      canvas.drawBitmap(bitmap, -256, 0, linePaint);
+      canvas.drawBitmap(bitmap, -256, 0, crossPaint);
     }
+    
+    canvas.restore();
 
-    linePath.reset();
-    linePath.moveTo(0, 500);
-    linePath.lineTo(-500, 0);
-    linePath.lineTo(0, -500);
-    canvas.drawPath(linePath, linePaint);
-
-    pointPaint.setStyle(Paint.Style.FILL);
-    pointPaint.setColor(0xFFFF0000);
-    canvas.drawCircle(-500, 0, 25, pointPaint);
-    pointPaint.setStyle(Paint.Style.STROKE);
-    pointPaint.setColor(0xFF000000);
-    canvas.drawCircle(-500, 0, 25, pointPaint);
-
+    // draw cross
+    canvas.save();
+    canvas.translate(sizeX / 2, sizeY / 2);
+    canvas.drawCircle(0, 0, crossSize * 0.5f, crossPaint);
+    canvas.drawLine(-crossSize, 0, crossSize, 0, crossPaint);
+    canvas.drawLine(0, -crossSize, 0, crossSize, crossPaint);
     canvas.restore();
   }
 
@@ -338,13 +340,8 @@ public class MapView extends View {
     textPaint.setStrokeWidth(1);
     textPaint.setTextAlign(Paint.Align.LEFT);
 
-    linePaint = new Paint(0);
-    linePaint.setStyle(Paint.Style.STROKE);
-    linePaint.setStrokeWidth(15);
-    linePaint.setStrokeJoin(Paint.Join.ROUND);
-    linePath = new Path();
-
-    pointPaint = new Paint(0);
-    pointPaint.setStrokeWidth(5);
+    crossPaint = new Paint(0);
+    crossPaint.setStyle(Paint.Style.STROKE);
+    crossPaint.setStrokeWidth(crossStroke);
   }
 }
