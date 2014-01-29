@@ -2,6 +2,7 @@ package ch.trillian.dufour;
 
 import java.text.SimpleDateFormat;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -17,6 +18,16 @@ import android.view.View;
 
 public class MapView extends View implements TileCache.LoadListener {
 
+  public interface ViewListener {
+    
+    public void onOrderLoadTile(Tile tile);
+
+    public void onCancelLoadTile(Tile tile);
+  }
+  
+  // view listener (our activity)
+  private ViewListener viewListener;
+  
   private static final int INVALID_POINTER_ID = -1;
 
   // the map 
@@ -130,6 +141,11 @@ public class MapView extends View implements TileCache.LoadListener {
     }
   }
 
+  public void setViewListener(ViewListener viewListener) {
+  
+    this.viewListener = viewListener;
+  }
+  
   private class GestureListener extends GestureDetector.SimpleOnGestureListener {
     @Override
     public boolean onDoubleTap(MotionEvent e) {
@@ -266,9 +282,9 @@ public class MapView extends View implements TileCache.LoadListener {
     // scale grid stroke size
     gridLinePaint.setStrokeWidth(gridStroke / scale);
 
-    // draw axes
-    canvas.drawLine(-1000, 0, 1000, 0, gridLinePaint);
-    canvas.drawLine(0, -1000, 0, 1000, gridLinePaint);
+//    // draw axes
+//    canvas.drawLine(-1000, 0, 1000, 0, gridLinePaint);
+//    canvas.drawLine(0, -1000, 0, 1000, gridLinePaint);
 
     // draw bitmaps and grids
     updateTilesMinMax();
@@ -281,13 +297,25 @@ public class MapView extends View implements TileCache.LoadListener {
     float maxY = (maxTileY + 1) * incY;
     float x, y;
     
+    // draw grid lines
+    x = minX;
+    for(int i = minTileX; i <= maxTileX + 1; i++) {
+      canvas.drawLine(x, minY, x, maxY, gridLinePaint);
+      x += incX;
+    }
+    y = minY;
+    for(int j = minTileY; j <= maxTileY + 1; j++) {
+      canvas.drawLine(minX, y, maxX, y, gridLinePaint);
+      y += incY;
+    }
+    
     // draw bitmaps
     x = minX;
     for(int i = minTileX; i <= maxTileX; i++) {
       y = minY;
       for(int j = minTileY; j <= maxTileY; j++) {
         if (tileCache != null) {
-          Tile tile = tileCache.getTile(map.getMapId(), layerIndex, i, j);
+          Tile tile = tileCache.getTile(map, layerIndex, i, j);
           if (tile != null) {
             Bitmap bitmap = tile.getBitmap();
             if (bitmap != null) {
@@ -301,17 +329,6 @@ public class MapView extends View implements TileCache.LoadListener {
     }
     
     // TODO: order preload tiles here
-    
-    x = minX;
-    for(int i = minTileX; i <= maxTileX + 1; i++) {
-      canvas.drawLine(x, minY, x, maxY, gridLinePaint);
-      x += incX;
-    }
-    y = minY;
-    for(int j = minTileY; j <= maxTileY + 1; j++) {
-      canvas.drawLine(minX, y, maxX, y, gridLinePaint);
-      y += incY;
-    }
     
     // draw grid coordinates
     x = minX + incX / 2;
@@ -397,6 +414,7 @@ public class MapView extends View implements TileCache.LoadListener {
     result[2] = a;
   }
 
+  @SuppressLint("SimpleDateFormat")
   public void setLocation(Location location) {
 
     this.location = location;
@@ -454,15 +472,32 @@ public class MapView extends View implements TileCache.LoadListener {
     invalidate();
   }
 
+  public void setTile(Tile tile) {
+    
+    if (tile == null) {
+      return;
+    }
+    
+    tileCache.setTile(tile);
+    
+    if (tile.getBitmap() != null) {
+      invalidate();
+    }
+  }
+  
   @Override
   public void onOrderLoadTile(Tile tile) {
 
-    Log.w("TRILLIAN", "onOrderLoadTile: " + tile);
+    if (viewListener != null) {
+      viewListener.onOrderLoadTile(tile);
+    }
   }
 
   @Override
   public void onCancelLoadTile(Tile tile) {
 
-    Log.w("TRILLIAN", "onCancelLoadTile: " + tile);
+    if (viewListener != null) {
+      viewListener.onCancelLoadTile(tile);
+    }
   }
 }

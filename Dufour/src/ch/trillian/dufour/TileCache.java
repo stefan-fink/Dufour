@@ -50,9 +50,9 @@ public class TileCache {
     this.loadListener = loadListener;
   }
   
-  public Tile getTile(int mapId, int layerIndex, int x, int y) {
+  public Tile getTile(Map map, int layerIndex, int x, int y) {
     
-    if (mapId != map.getMapId()) {
+    if (this.map != map) {
       return null;
     }
     
@@ -80,7 +80,7 @@ public class TileCache {
     
     // order new tile if none exists
     if (tile == null) {
-      tile = new Tile(mapId, layerIndex, x, y);
+      tile = new Tile(map, layerIndex, x, y);
       cache[layerIndex][cacheIndexY][cacheIndexX] = tile;
       orderLoad(tile);
     }
@@ -90,7 +90,7 @@ public class TileCache {
   
   public void setTile(Tile tile) {
 
-    if (map.getMapId() != tile.getMapId()) {
+    if (map != tile.getMap()) {
       return;
     }
     

@@ -3,6 +3,8 @@ package ch.trillian.dufour;
 public class Layer {
 
   private final String layerName; 
+  private final String urlLayerName; 
+  private final String urlFormat; 
   private final int tileSizeX;
   private final int tileSizeY;
   private final int left;
@@ -14,9 +16,11 @@ public class Layer {
   private final float minScale;
   private final float maxScale;
   
-  public Layer(String layerName, int tileSizeX, int tileSizeY, int left, int top, int right, int bottom, float minScale, float maxScale) {
+  public Layer(String layerName, String urlLayerName, String urlFormat, int tileSizeX, int tileSizeY, int left, int top, int right, int bottom, float minScale, float maxScale) {
     
     this.layerName = layerName;
+    this.urlLayerName = urlLayerName;
+    this.urlFormat = urlFormat;
     this.tileSizeX = tileSizeX;
     this.tileSizeY = tileSizeY;
     this.left = left;
@@ -30,6 +34,21 @@ public class Layer {
     sizeY = bottom > top ? bottom - top + 1 : top - bottom + 1; 
   }
 
+  public String getUrl(Tile tile) {
+    
+    return String.format(urlFormat, urlLayerName, getUrlX(tile.getX()), getUrlY(tile.getY()));
+  }
+  
+  public int getUrlX(int x) {
+    
+    return left < right ? left + x : left - x;
+  }
+  
+  public int getUrlY(int y) {
+    
+    return top < bottom ? top + y : top - y;
+  }
+  
   public boolean hasTile(int x, int y) {
 
     return x >= 0 && x < sizeX && y >= 0 && y < sizeY;
