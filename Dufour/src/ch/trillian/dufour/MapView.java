@@ -15,7 +15,7 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
-public class MapView extends View {
+public class MapView extends View implements TileCache.LoadListener {
 
   private static final int INVALID_POINTER_ID = -1;
 
@@ -23,6 +23,9 @@ public class MapView extends View {
   private Map map;
   private Layer layer;
   private int layerIndex;
+  
+  // the bitmap cache
+  private TileCache tileCache;
   
   // attributes
   private int textSize;
@@ -39,10 +42,11 @@ public class MapView extends View {
   private Paint gridLinePaint;
   private Paint gridTextPaint;
   private Paint crossPaint;
+  private Paint tilePaint;
 
   // view size in pixel
-  private int sizeX;
-  private int sizeY;
+  private int screenSizeX;
+  private int screenSizeY;
 
   // position and zoom
   // pixelX = (positionX + x) * scale 
@@ -111,7 +115,7 @@ public class MapView extends View {
       float newScale = scale * detector.getScaleFactor();
 
       // Don't let the object get too small or too large.
-      newScale = Math.max(0.25f, Math.min(newScale, 4.0f));
+      newScale = Math.max(layer.getMinScale(), Math.min(newScale, layer.getMaxScale()));
 
       float focusX = detector.getFocusX() / scale - positionX;
       float focusY = detector.getFocusY() / scale - positionY;
@@ -132,8 +136,8 @@ public class MapView extends View {
 
       // reset viewport
       scale = 1.0f;
-      positionX = sizeX / 2;
-      positionY = sizeY / 2;
+      positionX = screenSizeX / 2;
+      positionY = screenSizeY / 2;
 
       invalidate();
       return true;
@@ -143,8 +147,13 @@ public class MapView extends View {
   @Override
   protected void onSizeChanged(int w, int h, int oldw, int oldh) {
 
-    sizeX = w;
-    sizeY = h;
+    screenSizeX = w;
+    screenSizeY = h;
+    
+    if (screenSizeX != 0 && screenSizeY != 0) {
+       tileCache = new TileCache(map, TileCache.PRELOAD_SIZE, screenSizeX, screenSizeY);
+       tileCache.setLoadListener(this);
+    }
   }
 
   @Override
@@ -225,8 +234,6 @@ public class MapView extends View {
   protected void onDraw(Canvas canvas) {
 
     super.onDraw(canvas);
-
-    Log.w("TRILLIAN", "onDraw: " + System.currentTimeMillis());
     
     if (location != null) {
       textPaint.setTextSize(textSize / 2);
@@ -263,7 +270,7 @@ public class MapView extends View {
     canvas.drawLine(-1000, 0, 1000, 0, gridLinePaint);
     canvas.drawLine(0, -1000, 0, 1000, gridLinePaint);
 
-    // draw grid
+    // draw bitmaps and grids
     updateTilesMinMax();
     
     float incX = layer.getTileSizeX();
@@ -272,13 +279,35 @@ public class MapView extends View {
     float maxX = (maxTileX + 1) * incX;
     float minY = minTileY * incY;
     float maxY = (maxTileY + 1) * incY;
-
-    float x = minX;
+    float x, y;
+    
+    // draw bitmaps
+    x = minX;
+    for(int i = minTileX; i <= maxTileX; i++) {
+      y = minY;
+      for(int j = minTileY; j <= maxTileY; j++) {
+        if (tileCache != null) {
+          Tile tile = tileCache.getTile(map.getMapId(), layerIndex, i, j);
+          if (tile != null) {
+            Bitmap bitmap = tile.getBitmap();
+            if (bitmap != null) {
+              canvas.drawBitmap(bitmap, x, y, tilePaint);
+            }
+          }
+        }
+        y += incY;
+      }
+      x += incX;
+    }
+    
+    // TODO: order preload tiles here
+    
+    x = minX;
     for(int i = minTileX; i <= maxTileX + 1; i++) {
       canvas.drawLine(x, minY, x, maxY, gridLinePaint);
       x += incX;
     }
-    float y = minY;
+    y = minY;
     for(int j = minTileY; j <= maxTileY + 1; j++) {
       canvas.drawLine(minX, y, maxX, y, gridLinePaint);
       y += incY;
@@ -289,18 +318,18 @@ public class MapView extends View {
     for(int i = minTileX; i <= maxTileX; i++) {
       y = minY + incY / 2 + gridTextPaint.getTextSize() / 2;
       for(int j = minTileY; j <= maxTileY; j++) {
-        canvas.drawText("(" + i + "," + j + ")", x, y, gridTextPaint);
+        String text = layer.hasTile(i, j) ? "(" + i + "," + j + ")" : "no data";
+        canvas.drawText(text, x, y, gridTextPaint);
         y += incY;
       }
       x += incX;
     }
     
-    
     canvas.restore();
 
     // draw cross
     canvas.save();
-    canvas.translate(sizeX / 2, sizeY / 2);
+    canvas.translate(screenSizeX / 2, screenSizeY / 2);
     canvas.drawCircle(0, 0, crossSize * 0.5f, crossPaint);
     canvas.drawLine(-crossSize, 0, crossSize, 0, crossPaint);
     canvas.drawLine(0, -crossSize, 0, crossSize, crossPaint);
@@ -310,9 +339,9 @@ public class MapView extends View {
   private void updateTilesMinMax() {
     
     minTileX = (int) Math.floor(-positionX / layer.getTileSizeX());
-    maxTileX = (int) Math.floor((sizeX / scale - positionX) / layer.getTileSizeX());
+    maxTileX = (int) Math.floor((screenSizeX / scale - positionX) / layer.getTileSizeX());
     minTileY = (int) Math.floor(-positionY / layer.getTileSizeY());
-    maxTileY = (int) Math.floor((sizeY / scale - positionY) / layer.getTileSizeY());
+    maxTileY = (int) Math.floor((screenSizeY / scale - positionY) / layer.getTileSizeY());
   }
   
   public String getLabelText() {
@@ -412,6 +441,8 @@ public class MapView extends View {
     crossPaint = new Paint(0);
     crossPaint.setStyle(Paint.Style.STROKE);
     crossPaint.setStrokeWidth(crossStroke);
+
+    tilePaint = new Paint(0);
   }
   
   public void setMap(Map map, int layerIndex) {
@@ -421,5 +452,17 @@ public class MapView extends View {
     this.layer = map.getLayers()[layerIndex];
     
     invalidate();
+  }
+
+  @Override
+  public void onOrderLoadTile(Tile tile) {
+
+    Log.w("TRILLIAN", "onOrderLoadTile: " + tile);
+  }
+
+  @Override
+  public void onCancelLoadTile(Tile tile) {
+
+    Log.w("TRILLIAN", "onCancelLoadTile: " + tile);
   }
 }

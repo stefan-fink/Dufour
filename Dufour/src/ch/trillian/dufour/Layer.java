@@ -5,18 +5,36 @@ public class Layer {
   private final String layerName; 
   private final int tileSizeX;
   private final int tileSizeY;
-  private final int maxTileX;
-  private final int maxTileY;
+  private final int left;
+  private final int top;
+  private final int right;
+  private final int bottom;
+  private final int sizeX;
+  private final int sizeY;
+  private final float minScale;
+  private final float maxScale;
   
-  public Layer(String layerName, int tileSizeX, int tileSizeY, int maxTileX, int maxTileY) {
+  public Layer(String layerName, int tileSizeX, int tileSizeY, int left, int top, int right, int bottom, float minScale, float maxScale) {
     
     this.layerName = layerName;
     this.tileSizeX = tileSizeX;
     this.tileSizeY = tileSizeY;
-    this.maxTileX = maxTileX;
-    this.maxTileY = maxTileY;
+    this.left = left;
+    this.top = top;
+    this.right = right;
+    this.bottom = bottom;
+    this.minScale = minScale;
+    this.maxScale = maxScale;
+    
+    sizeX = right > left ? right - left + 1 : left - right + 1; 
+    sizeY = bottom > top ? bottom - top + 1 : top - bottom + 1; 
   }
 
+  public boolean hasTile(int x, int y) {
+
+    return x >= 0 && x < sizeX && y >= 0 && y < sizeY;
+  }
+  
   public String getLayerName() {
     return layerName;
   }
@@ -29,11 +47,35 @@ public class Layer {
     return tileSizeY;
   }
 
-  public int getMaxTileX() {
-    return maxTileX;
+  public int getLeft() {
+    return left;
   }
 
-  public int getMaxTileY() {
-    return maxTileY;
+  public int getTop() {
+    return top;
+  }
+
+  public int getRight() {
+    return right;
+  }
+
+  public int getBottom() {
+    return bottom;
+  }
+
+  public int getSizeX() {
+    return sizeX;
+  }
+
+  public int getSizeY() {
+    return sizeY;
+  }
+
+  public float getMinScale() {
+    return minScale;
+  }
+
+  public float getMaxScale() {
+    return maxScale;
   }
 }

@@ -28,10 +28,10 @@ public class MapActivity extends Activity {
   private Map createMap(String mapName) {
     
     Layer[] layers = {
-        new Layer("CH1903-18", 256, 256, 20, 20),
-        new Layer("CH1903-19", 256, 256, 20, 20)
+        new Layer("CH1903-18", 256, 256, 10, 2, 20, 4, 0.5f, 3.0f),
+        new Layer("CH1903-19", 256, 256, 10, 2, 20, 4, 0.5f, 3.0f)
     };
     
-    return new Map(mapName, layers);
+    return new Map(1, mapName, layers);
   }
 }
