@@ -30,6 +30,9 @@ public class TileCache {
       int cacheSizeX = (int) ( (1f / layer.getMinScale()) * screenSizeX / layer.getTileSizeX()) + 2 * preloadSize + 1;
       int cacheSizeY = (int) ( (1f / layer.getMinScale()) * screenSizeY / layer.getTileSizeY()) + 2 * preloadSize + 1;
       
+      cacheSizeX = Math.min(cacheSizeX, layer.getSizeX());
+      cacheSizeY = Math.min(cacheSizeY, layer.getSizeY());
+      
       // create array of columns
       cache[layerIndex] = new Tile[cacheSizeY][];
       
