@@ -8,9 +8,9 @@ public class TileCache {
   
   private Map map;
   private Tile[][][] cache;
-  private LoadListener loadListener; 
+  private CacheListener cacheListener; 
   
-  public interface LoadListener {
+  public interface CacheListener {
     
     public void onOrderLoadTile(Tile tile);
 
@@ -45,9 +45,9 @@ public class TileCache {
     }
   }
   
-  public void setLoadListener(LoadListener loadListener) {
+  public void setCacheListener(CacheListener cacheListener) {
     
-    this.loadListener = loadListener;
+    this.cacheListener = cacheListener;
   }
   
   public Tile getTile(Map map, int layerIndex, int x, int y) {
@@ -119,15 +119,15 @@ public class TileCache {
   
   private void orderLoad(Tile tile) {
     
-    if (loadListener != null) {
-      loadListener.onOrderLoadTile(tile);
+    if (cacheListener != null) {
+      cacheListener.onOrderLoadTile(tile);
     }
   }
   
   private void cancelLoad(Tile tile) {
     
-    if (loadListener != null) {
-      loadListener.onCancelLoadTile(tile);
+    if (cacheListener != null) {
+      cacheListener.onCancelLoadTile(tile);
     }
   }
 }

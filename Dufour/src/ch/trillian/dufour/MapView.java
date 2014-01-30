@@ -16,13 +16,13 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
-public class MapView extends View implements TileCache.LoadListener {
+public class MapView extends View {
 
   public interface ViewListener {
     
-    public void onOrderLoadTile(Tile tile);
+    public void onSizeChanged(int w, int h, int oldw, int oldh);
 
-    public void onCancelLoadTile(Tile tile);
+    public Tile onGetTile(Map map, int layerIndex, int x, int y);
   }
   
   // view listener (our activity)
@@ -34,9 +34,6 @@ public class MapView extends View implements TileCache.LoadListener {
   private Map map;
   private Layer layer;
   private int layerIndex;
-  
-  // the bitmap cache
-  private TileCache tileCache;
   
   // attributes
   private int textSize;
@@ -166,9 +163,8 @@ public class MapView extends View implements TileCache.LoadListener {
     screenSizeX = w;
     screenSizeY = h;
     
-    if (screenSizeX != 0 && screenSizeY != 0) {
-       tileCache = new TileCache(map, TileCache.PRELOAD_SIZE, screenSizeX, screenSizeY);
-       tileCache.setLoadListener(this);
+    if (viewListener != null) {
+      viewListener.onSizeChanged(w, h, oldw, oldh);
     }
   }
 
@@ -314,8 +310,8 @@ public class MapView extends View implements TileCache.LoadListener {
     for(int i = minTileX; i <= maxTileX; i++) {
       y = minY;
       for(int j = minTileY; j <= maxTileY; j++) {
-        if (tileCache != null) {
-          Tile tile = tileCache.getTile(map, layerIndex, i, j);
+        if (viewListener != null) {
+          Tile tile = viewListener.onGetTile(map, layerIndex, i, j);
           if (tile != null) {
             Bitmap bitmap = tile.getBitmap();
             if (bitmap != null) {
@@ -470,34 +466,5 @@ public class MapView extends View implements TileCache.LoadListener {
     this.layer = map.getLayers()[layerIndex];
     
     invalidate();
-  }
-
-  public void setTile(Tile tile) {
-    
-    if (tile == null) {
-      return;
-    }
-    
-    tileCache.setTile(tile);
-    
-    if (tile.getBitmap() != null) {
-      invalidate();
-    }
-  }
-  
-  @Override
-  public void onOrderLoadTile(Tile tile) {
-
-    if (viewListener != null) {
-      viewListener.onOrderLoadTile(tile);
-    }
-  }
-
-  @Override
-  public void onCancelLoadTile(Tile tile) {
-
-    if (viewListener != null) {
-      viewListener.onCancelLoadTile(tile);
-    }
   }
 }

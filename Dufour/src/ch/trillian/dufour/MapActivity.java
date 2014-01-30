@@ -3,29 +3,27 @@ package ch.trillian.dufour;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayDeque;
 
-import ch.trillian.dufour.R;
+import android.app.Activity;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.app.Activity;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.util.Log;
 import android.view.Menu;
 
-public class MapActivity extends Activity implements MapView.ViewListener {
+public class MapActivity extends Activity {
 
-  private final Map ch1903Map = createMap("ch1903");
+  private final Map map = createMap("ch1903");
   private MapView mapView;
+  private TileCache tileCache;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_map);
     mapView = (MapView) findViewById(R.id.map_view);
-    mapView.setMap(ch1903Map, 2);
-    mapView.setViewListener(this);
+    mapView.setMap(map, 0);
+    mapView.setViewListener(new MapViewListener());
   }
 
   @Override
@@ -55,18 +53,46 @@ public class MapActivity extends Activity implements MapView.ViewListener {
     return new Map(1, mapName, layers);
   }
 
-  @Override
-  public void onOrderLoadTile(Tile tile) {
+  private class MapViewListener implements MapView.ViewListener {
 
-    Log.w("TRILLIAN", "onOrderLoadTile: " + tile);
-    
-    new DownloadMapTask().execute(tile);
+    @Override
+    public void onSizeChanged(int w, int h, int oldw, int oldh) {
+
+      if (w == 0 || h == 0) {
+        return;
+      }
+
+      Log.w("TRILLIAN", "onSizeChanged: " + (tileCache == null ? "no old cache" : "has old cache"));
+
+      tileCache = new TileCache(map, TileCache.PRELOAD_SIZE, w, h);
+      tileCache.setCacheListener(new CacheListener());
+    }
+
+    @Override
+    public Tile onGetTile(Map map, int layerIndex, int x, int y) {
+      
+      if (tileCache == null) {
+        return null;
+      }
+      
+      return tileCache.getTile(map, layerIndex, x, y);
+    }
   }
+  
+  private class CacheListener implements TileCache.CacheListener {
 
-  @Override
-  public void onCancelLoadTile(Tile tile) {
+    @Override
+    public void onOrderLoadTile(Tile tile) {
+      
+      Log.w("TRILLIAN", "onOrderLoadTile: " + tile);
+      new DownloadMapTask().execute(tile);
+    }
 
-    Log.w("TRILLIAN", "onCancelLoadTile: " + tile);
+    @Override
+    public void onCancelLoadTile(Tile tile) {
+      
+      Log.w("TRILLIAN", "onCancelLoadTile: " + tile);
+    }
   }
 
   private class DownloadMapTask extends AsyncTask<Tile, Integer, Tile> {
@@ -108,7 +134,8 @@ public class MapActivity extends Activity implements MapView.ViewListener {
         Log.w("TRILLIAN", "tile.bitmap: null");
       } else {
         Log.w("TRILLIAN", "tile.bitmap: (" + tile.getBitmap().getWidth() + ", " + tile.getBitmap().getHeight() +")");
-        mapView.setTile(tile);
+        tileCache.setTile(tile);
+        mapView.invalidate();
       }
     }
   }
