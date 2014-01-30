@@ -17,15 +17,16 @@ public class MapActivity extends Activity {
     
     super.onCreate(savedInstanceState);
 
+    // init loader
+    tileLoader = new TileLoader(this);
+    tileLoader.setLoadListener(new LoadListener());
+
     // init view
     setContentView(R.layout.activity_map);
     mapView = (MapView) findViewById(R.id.map_view);
     mapView.setLayer(map.getLayer(2));
     mapView.setViewListener(new MapViewListener());
     
-    // init loader
-    tileLoader = new TileLoader(this);
-    tileLoader.setLoadListener(new LoadListener());
   }
 
   @Override
@@ -89,9 +90,8 @@ public class MapActivity extends Activity {
       if (tile == null) {
         Log.w("TRILLIAN", "tile: null");
       } else if (tile.getBitmap() == null) {
-        Log.w("TRILLIAN", "tile.bitmap: null");
+        Log.w("TRILLIAN", "tile.bitmap: null" + tile);
       } else {
-        Log.w("TRILLIAN", "tile.bitmap: (" + tile.getBitmap().getWidth() + ", " + tile.getBitmap().getHeight() +")");
         tileCache.setTile(tile);
         mapView.invalidate();
       }
