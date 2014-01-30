@@ -1,14 +1,6 @@
 package ch.trillian.dufour;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import android.app.Activity;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -18,7 +10,7 @@ public class MapActivity extends Activity {
   private final Map map = createMap();
   private MapView mapView;
   private TileCache tileCache;
-  private MapDatabaseHelper databaseHelper;
+  private TileLoader tileLoader;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -28,13 +20,12 @@ public class MapActivity extends Activity {
     // init view
     setContentView(R.layout.activity_map);
     mapView = (MapView) findViewById(R.id.map_view);
-    mapView.setLayer(map.getLayer(0));
+    mapView.setLayer(map.getLayer(2));
     mapView.setViewListener(new MapViewListener());
     
-    // init database
-    databaseHelper = new MapDatabaseHelper(this);
-    
-    Log.w("TRILLIAN", "TILES count=" + databaseHelper.getTileCount());
+    // init loader
+    tileLoader = new TileLoader(this);
+    tileLoader.setLoadListener(new LoadListener());
   }
 
   @Override
@@ -90,81 +81,11 @@ public class MapActivity extends Activity {
     }
   }
   
-  private class CacheListener implements TileCache.CacheListener {
+  private class LoadListener implements TileLoader.LoadListener {
 
     @Override
-    public void onOrderLoadTile(Tile tile) {
+    public void onLoadFinished(Tile tile) {
       
-      Log.w("TRILLIAN", "onOrderLoadTile: " + tile);
-      new DownloadMapTask().execute(tile);
-    }
-
-    @Override
-    public void onCancelLoadTile(Tile tile) {
-      
-      Log.w("TRILLIAN", "onCancelLoadTile: " + tile);
-    }
-  }
-
-  private class DownloadMapTask extends AsyncTask<Tile, Integer, Tile> {
-
-    protected Tile doInBackground(Tile... tiles) {
-
-      Tile tile = tiles[0];
-
-      try {
-
-        byte[] image = databaseHelper.getTileImage(tile);
-        
-        if (image != null) {
-          Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
-          if (bitmap != null) {
-            tile.setBitmap(bitmap);
-            Log.w("TRILLIAN", "Tile loaded from DB: " + tile);
-            return tile;
-          }
-        }
-        
-        // URL("http://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/20140106/21781/19/7/12.jpeg");
-
-        URL url = new URL(tile.getUrl());
-
-        Log.w("TRILLIAN", url.toString());
-
-        HttpURLConnection connection = (HttpURLConnection)
-        url.openConnection();
-        connection.addRequestProperty("referer", "http://map.geo.admin.ch/");
-        InputStream inputStream = connection.getInputStream();
-        
-        // convert inputStream to byte[]
-        int numRead;
-        byte[] block = new byte[16384];
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        while ((numRead = inputStream.read(block, 0, block.length)) != -1) {
-          buffer.write(block, 0, numRead);
-        }
-        inputStream.close();
-        connection.disconnect();
-        buffer.flush();
-        image = buffer.toByteArray();
-
-        // convert to Bitmap
-        Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
-        if (bitmap != null) {
-          Log.w("TRILLIAN", "Tile loaded from URL: " + tile);
-          tile.setBitmap(bitmap);
-          databaseHelper.insertOrReplaceTileBitmap(tile, image);
-        }
-        
-      } catch (Exception e) {
-        Log.w("TRILLIAN", "Exception: " + e.getMessage(), e);
-      }
-
-      return tile;
-    }
-
-    protected void onPostExecute(Tile tile) {
-
       if (tile == null) {
         Log.w("TRILLIAN", "tile: null");
       } else if (tile.getBitmap() == null) {
@@ -174,6 +95,23 @@ public class MapActivity extends Activity {
         tileCache.setTile(tile);
         mapView.invalidate();
       }
+    }
+  }
+  
+  private class CacheListener implements TileCache.CacheListener {
+
+    @Override
+    public void onOrderLoadTile(Tile tile) {
+      
+      Log.w("TRILLIAN", "onOrderLoadTile: " + tile);
+      tileLoader.orderLoadTile(tile);
+    }
+
+    @Override
+    public void onCancelLoadTile(Tile tile) {
+      
+      Log.w("TRILLIAN", "onCancelLoadTile: " + tile);
+      tileLoader.cancelLoadTile(tile);
     }
   }
 }
