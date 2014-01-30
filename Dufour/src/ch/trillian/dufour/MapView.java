@@ -22,7 +22,7 @@ public class MapView extends View {
     
     public void onSizeChanged(int w, int h, int oldw, int oldh);
 
-    public Tile onGetTile(Map map, int layerIndex, int x, int y);
+    public Tile onGetTile(Layer layer, int x, int y);
   }
   
   // view listener (our activity)
@@ -31,9 +31,7 @@ public class MapView extends View {
   private static final int INVALID_POINTER_ID = -1;
 
   // the map 
-  private Map map;
   private Layer layer;
-  private int layerIndex;
   
   // attributes
   private int textSize;
@@ -311,7 +309,7 @@ public class MapView extends View {
       y = minY;
       for(int j = minTileY; j <= maxTileY; j++) {
         if (viewListener != null) {
-          Tile tile = viewListener.onGetTile(map, layerIndex, i, j);
+          Tile tile = viewListener.onGetTile(layer, i, j);
           if (tile != null) {
             Bitmap bitmap = tile.getBitmap();
             if (bitmap != null) {
@@ -459,11 +457,9 @@ public class MapView extends View {
     tilePaint = new Paint(0);
   }
   
-  public void setMap(Map map, int layerIndex) {
+  public void setLayer(Layer layer) {
     
-    this.map = map;
-    this.layerIndex = layerIndex;
-    this.layer = map.getLayers()[layerIndex];
+    this.layer = layer;
     
     invalidate();
   }

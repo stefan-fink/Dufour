@@ -6,15 +6,15 @@ import android.graphics.Bitmap;
 public class Tile {
 
   private final Map map; 
-  private final int layerIndex ;
+  private final Layer layer; 
   private final int x;
   private final int y;
   private Bitmap bitmap;
   
-  public Tile(Map map, int layerIndex, int x, int y) {
+  public Tile(Map map, Layer layer, int x, int y) {
     
     this.map = map;
-    this.layerIndex = layerIndex;
+    this.layer = layer;
     this.x = x;
     this.y = y;
   }
@@ -22,15 +22,20 @@ public class Tile {
   @SuppressLint("DefaultLocale")
   public String toString() {
     
-    return String.format("mapId=%d, layerIndex=%d, x=%d, y=%d",  map.getMapId(), layerIndex, x, y);
+    return String.format("mapName=%s, layerName=%s, x=%d, y=%d",  map.getName(), layer.getName(), x, y);
+  }
+  
+  public String getUrl() {
+    
+    return layer.getUrl(this);
   }
   
   public Map getMap() {
     return map;
   }
 
-  public int getLayerIndex() {
-    return layerIndex;
+  public Layer getLayer() {
+    return layer;
   }
 
   public int getX() {

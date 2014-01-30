@@ -2,15 +2,19 @@ package ch.trillian.dufour;
 
 public class Map {
 
-  private final int mapId;
-  private final String mapName;
+  private final String name;
   private final Layer[] layers;
   
-  public Map(int mapId, String mapName, Layer[] layers) {
+  public Map(String name, Layer[] layers) {
     
-    this.mapId = mapId;
-    this.mapName = mapName;
+    this.name = name;
     this.layers = layers;
+    
+    // set layers map and indexes
+    for (int layerIndex = 0; layerIndex < layers.length; layerIndex++) {
+      layers[layerIndex].setMap(this);
+      layers[layerIndex].setIndex(layerIndex);
+    }
   }
 
   public int getLayerCount() {
@@ -23,12 +27,8 @@ public class Map {
     return layers[layerIndex];
   }
   
-  public int getMapId() {
-    return mapId;
-  }
-
-  public String getMapName() {
-    return mapName;
+  public String getName() {
+    return name;
   }
 
   public Layer[] getLayers() {

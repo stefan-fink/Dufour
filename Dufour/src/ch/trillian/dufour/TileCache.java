@@ -41,7 +41,7 @@ public class TileCache {
         cache[layerIndex][y] = new Tile[cacheSizeX];
       }
       
-      Log.w("TRILLIAN", "Created cache: mapId=" + map.getMapId() + ", layerIndex=" + layerIndex + ", cacheSizeX="+ cacheSizeX + ", cacheSizeY="+ cacheSizeY);
+      Log.w("TRILLIAN", "Created cache: mapName=" + map.getName() + ", layerName=" + layer.getName() + ", cacheSizeX="+ cacheSizeX + ", cacheSizeY="+ cacheSizeY);
     }
   }
   
@@ -50,11 +50,13 @@ public class TileCache {
     this.cacheListener = cacheListener;
   }
   
-  public Tile getTile(Map map, int layerIndex, int x, int y) {
+  public Tile getTile(Layer layer, int x, int y) {
     
-    if (this.map != map) {
+    if (this.map != layer.getMap()) {
       return null;
     }
+    
+    int layerIndex = layer.getIndex();
     
     if (!map.getLayer(layerIndex).hasTile(x, y)) {
       return null;
@@ -80,7 +82,7 @@ public class TileCache {
     
     // order new tile if none exists
     if (tile == null) {
-      tile = new Tile(map, layerIndex, x, y);
+      tile = new Tile(map, layer, x, y);
       cache[layerIndex][cacheIndexY][cacheIndexX] = tile;
       orderLoad(tile);
     }
@@ -97,11 +99,11 @@ public class TileCache {
     int x = tile.getX();
     int y = tile.getY();
     
-    if (!map.getLayer(tile.getLayerIndex()).hasTile(x, y)) {
+    if (!tile.getLayer().hasTile(x, y)) {
       return;
     }
 
-    int layerIndex = tile.getLayerIndex();
+    int layerIndex = tile.getLayer().getIndex();
     int cacheSizeX = cache[layerIndex][0].length;
     int cacheSizeY = cache[layerIndex].length;
     
