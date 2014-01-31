@@ -9,7 +9,7 @@
         android:id="@+id/map_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        custom:textSize="32dp"
+        custom:textSize="24dp"
         custom:gridStroke="1dp" 
         custom:gridTextSize="10dp" 
         custom:crossSize="25dp" 

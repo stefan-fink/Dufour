@@ -1,7 +1,5 @@
 package ch.trillian.dufour;
 
-import android.location.Location;
-import android.util.Log;
 
 public class Layer {
 
@@ -58,12 +56,10 @@ public class Layer {
 
   public String[] getDisplayCoordinates(float pixelX, float pixelY) {
     
-    Log.w("TRILLIAN", "pixelX=" + pixelX + " pixelY=" + pixelY);
-    
     float x = left + pixelX * meterPerPixel;
     float y = top - pixelY * meterPerPixel;
     
-    return new String[] { String.format("x=%.0f", x), String.format("y=%.0f", y) };
+    return new String[] { String.format("%.0f", x), String.format("%.0f", y) };
   }
   
   public Map getMap() {
@@ -89,6 +85,24 @@ public class Layer {
   public float getMeterPerPixel() {
     
     return meterPerPixel;
+  }
+  
+  public Layer getLayerIn() {
+    
+    if (index + 1 < map.getLayerCount()) {
+      return map.getLayer(index + 1);
+    }
+    
+    return null;
+  }
+  
+  public Layer getLayerOut() {
+    
+    if (index > 0) {
+      return map.getLayer(index - 1);
+    }
+    
+    return null;
   }
   
   public String getUrl(Tile tile) {

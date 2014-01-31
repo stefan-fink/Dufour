@@ -122,14 +122,40 @@ public class MapView extends View {
 
       float newScale = scale * detector.getScaleFactor();
 
-      // Don't let the object get too small or too large.
-      newScale = Math.max(layer.getMinScale(), Math.min(newScale, layer.getMaxScale()));
-
+      // focal point in map-pixels
       float focusX = detector.getFocusX() / scale - positionX;
       float focusY = detector.getFocusY() / scale - positionY;
 
-      positionX = (positionX + focusX) * scale / newScale - focusX;
-      positionY = (positionY + focusY) * scale / newScale - focusY;
+      if (newScale > layer.getMaxScale()) {
+        
+        // try to zoom layer in
+        Layer newLayer = layer.getLayerIn();
+        if (newLayer != null) {
+          float scaleRatio = newLayer.getMeterPerPixel() / layer.getMeterPerPixel();
+          newScale *= scaleRatio;
+          focusX /= scaleRatio;
+          focusY /= scaleRatio;
+          layer = newLayer;
+        }
+        
+      } else if (newScale < layer.getMinScale()) {
+        
+        // try to zoom layer out
+        Layer newLayer = layer.getLayerOut();
+        if (newLayer != null) {
+          float scaleRatio = newLayer.getMeterPerPixel() / layer.getMeterPerPixel();
+          newScale = newScale * scaleRatio;
+          focusX /= scaleRatio;
+          focusY /= scaleRatio;
+          layer = newLayer;
+        }
+      }
+      
+      // Don't let the object get too small or too large.
+      newScale = Math.max(layer.getMinScale(), Math.min(newScale, layer.getMaxScale()));
+
+      positionX = detector.getFocusX() / newScale - focusX;
+      positionY = detector.getFocusY() / newScale - focusY;
 
       scale = newScale;
 
@@ -344,15 +370,10 @@ public class MapView extends View {
     canvas.restore();
 
     // draw coordinates
-    Log.w("TRILLIAN", "" + positionX + ", " + positionY);
     String[] displayCoordinates = layer.getDisplayCoordinates(centerX / scale - positionX, centerY / scale - positionY);
     textPaint.setTextSize(textSize);
     y = 0 - textPaint.ascent();
-    canvas.drawText("Layer: " + layer.getName(), 10, y, textPaint);
-    y += textPaint.getTextSize();
-    canvas.drawText(displayCoordinates[0], 10, y, textPaint);
-    y += textPaint.getTextSize();
-    canvas.drawText(displayCoordinates[1], 10, y, textPaint);
+    canvas.drawText(String.format("%s @ %1.2f [%s, %s]", layer.getName(), scale, displayCoordinates[0], displayCoordinates[1]), 10, y, textPaint);
     
     // draw cross
     canvas.save();

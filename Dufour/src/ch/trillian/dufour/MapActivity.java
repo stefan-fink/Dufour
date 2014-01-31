@@ -25,7 +25,7 @@ public class MapActivity extends Activity {
     // init view
     setContentView(R.layout.activity_map);
     mapView = (MapView) findViewById(R.id.map_view);
-    mapView.setLayer(map.getLayer(1));
+    mapView.setLayer(map.getLayer(0));
     mapView.setViewListener(new MapViewListener());
     
   }
@@ -43,15 +43,15 @@ public class MapActivity extends Activity {
 
     Layer[] layers = { 
         new Layer("16", urlFormat, 420000f, 350000f, 250f, 256, 256, 0, 0,    7,    4, 0.5f, 2.0f),
-        new Layer("17", urlFormat, 420000f, 350000f, 100f, 256, 256, 0, 0,   18,   12, 0.5f, 3.0f),
-        new Layer("18", urlFormat, 420000f, 350000f,  50f, 256, 256, 0, 0,   37,   24, 0.5f, 3.0f),
-        new Layer("19", urlFormat, 420000f, 350000f,  25f, 256, 256, 0, 0,   93,   62, 0.5f, 3.0f),
-        new Layer("20", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0,  187,  124, 0.5f, 3.0f),
-        new Layer("21", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0,  374,  249, 0.5f, 3.0f),
-        new Layer("22", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0,  749,  499, 0.5f, 3.0f),
-        new Layer("23", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0,  937,  624, 0.5f, 3.0f),
-        new Layer("24", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0, 1249,  833, 0.5f, 3.0f),
-        new Layer("25", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0, 1875, 1249, 0.5f, 3.0f)
+        new Layer("17", urlFormat, 420000f, 350000f, 100f, 256, 256, 0, 0,   18,   12, 0.5f, 2.0f),
+        new Layer("18", urlFormat, 420000f, 350000f,  50f, 256, 256, 0, 0,   37,   24, 0.5f, 2.0f),
+        new Layer("19", urlFormat, 420000f, 350000f,  20f, 256, 256, 0, 0,   93,   62, 0.5f, 4.0f),
+//        new Layer("20", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0,  187,  124, 0.5f, 3.0f),
+//        new Layer("21", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0,  374,  249, 0.5f, 3.0f),
+//        new Layer("22", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0,  749,  499, 0.5f, 3.0f),
+//        new Layer("23", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0,  937,  624, 0.5f, 3.0f),
+//        new Layer("24", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0, 1249,  833, 0.5f, 3.0f),
+//        new Layer("25", urlFormat, 0f, 0f, 100f, 256, 256, 0, 0, 1875, 1249, 0.5f, 3.0f)
     };
 
     return new Map("CH1903-25", layers);
