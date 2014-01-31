@@ -28,13 +28,13 @@ public class Layer {
   private final int tilesY;
   
   // the minimum and maximum scale this layer should be used to
-  private final float minScale;
-  private final float maxScale;
+  private float minScale;
+  private float maxScale;
   
   private Map map;
   private int index;
   
-  public Layer(String name, String urlFormat, float left, float top, float meterPerPixel, int tileSizeX, int tileSizeY, int leftTile, int topTile, int rightTile, int bottomTile, float minScale, float maxScale) {
+  public Layer(String name, String urlFormat, float left, float top, float meterPerPixel, int tileSizeX, int tileSizeY, int leftTile, int topTile, int rightTile, int bottomTile) {
     
     this.name = name;
     this.urlFormat = urlFormat;
@@ -47,8 +47,6 @@ public class Layer {
     this.topTile = topTile;
     this.rightTile = rightTile;
     this.bottomTile = bottomTile;
-    this.minScale = minScale;
-    this.maxScale = maxScale;
     
     tilesX = rightTile > leftTile ? rightTile - leftTile + 1 : leftTile - rightTile + 1; 
     tilesY = bottomTile > topTile ? bottomTile - topTile + 1 : topTile - bottomTile + 1; 
@@ -167,5 +165,13 @@ public class Layer {
 
   public float getMaxScale() {
     return maxScale;
+  }
+  
+  public void setMinScale(float minScale) {
+    this.minScale = minScale;
+  }
+
+  public void setMaxScale(float maxScale) {
+    this.maxScale = maxScale;
   }
 }

@@ -61,7 +61,7 @@ public class MapView extends View {
   // x = pixelX / scale - positionX
   private float positionX = 500;
   private float positionY = 500;
-  private float scale = 1.0f;
+  private float scale = 2.0f;
 
   // min and max coordinates of tiles on screen
   private int minTileX;
@@ -174,9 +174,7 @@ public class MapView extends View {
     public boolean onDoubleTap(MotionEvent e) {
 
       // reset viewport
-      scale = 1.0f;
-      positionX = screenSizeX / 2;
-      positionY = screenSizeY / 2;
+      scale = 2.0f;
 
       invalidate();
       return true;
@@ -306,10 +304,6 @@ public class MapView extends View {
     
     // scale grid stroke size
     gridLinePaint.setStrokeWidth(gridStroke / scale);
-
-//    // draw axes
-//    canvas.drawLine(-1000, 0, 1000, 0, gridLinePaint);
-//    canvas.drawLine(0, -1000, 0, 1000, gridLinePaint);
 
     // draw bitmaps and grids
     updateTilesMinMax();
