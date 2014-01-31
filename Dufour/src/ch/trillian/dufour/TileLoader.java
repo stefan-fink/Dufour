@@ -77,7 +77,7 @@ public class TileLoader {
           if (image != null) {
             Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
             if (bitmap != null) {
-              Log.w("TRILLIAN", "Tile loaded from DB: " + tile);
+              // Log.w("TRILLIAN", "Tile loaded from DB: " + tile);
               tile.setBitmap(bitmap);
               publishProgress(tile);
               continue;
@@ -104,7 +104,7 @@ public class TileLoader {
           // convert to Bitmap
           Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
           if (bitmap != null) {
-            Log.w("TRILLIAN", "Tile loaded from URL: " + tile);
+            // Log.w("TRILLIAN", "Tile loaded from URL: " + tile);
             tile.setBitmap(bitmap);
             publishProgress(tile);
             databaseHelper.insertOrReplaceTileBitmap(tile, image);

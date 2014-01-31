@@ -1,40 +1,71 @@
 package ch.trillian.dufour;
 
+import android.location.Location;
+import android.util.Log;
+
 public class Layer {
 
   private final String name; 
-  private final String urlFormat; 
+  private final String urlFormat;
+  
+  // the top left corner in ch1903 coordinates
+  private final float left;
+  private final float top;
+  
+  // the number of meters per pixel
+  private float meterPerPixel;
+
+  // the size of each tile
   private final int tileSizeX;
   private final int tileSizeY;
-  private final int left;
-  private final int top;
-  private final int right;
-  private final int bottom;
-  private final int sizeX;
-  private final int sizeY;
+  
+  // the indexes used for loading tiles via URL
+  private final int leftTile;
+  private final int topTile;
+  private final int rightTile;
+  private final int bottomTile;
+  
+  // the total size in number of tiles
+  private final int tilesX;
+  private final int tilesY;
+  
+  // the minimum and maximum scale this layer should be used to
   private final float minScale;
   private final float maxScale;
   
   private Map map;
   private int index;
   
-  public Layer(String name, String urlFormat, int tileSizeX, int tileSizeY, int left, int top, int right, int bottom, float minScale, float maxScale) {
+  public Layer(String name, String urlFormat, float left, float top, float meterPerPixel, int tileSizeX, int tileSizeY, int leftTile, int topTile, int rightTile, int bottomTile, float minScale, float maxScale) {
     
     this.name = name;
     this.urlFormat = urlFormat;
-    this.tileSizeX = tileSizeX;
-    this.tileSizeY = tileSizeY;
     this.left = left;
     this.top = top;
-    this.right = right;
-    this.bottom = bottom;
+    this.meterPerPixel = meterPerPixel;
+    this.tileSizeX = tileSizeX;
+    this.tileSizeY = tileSizeY;
+    this.leftTile = leftTile;
+    this.topTile = topTile;
+    this.rightTile = rightTile;
+    this.bottomTile = bottomTile;
     this.minScale = minScale;
     this.maxScale = maxScale;
     
-    sizeX = right > left ? right - left + 1 : left - right + 1; 
-    sizeY = bottom > top ? bottom - top + 1 : top - bottom + 1; 
+    tilesX = rightTile > leftTile ? rightTile - leftTile + 1 : leftTile - rightTile + 1; 
+    tilesY = bottomTile > topTile ? bottomTile - topTile + 1 : topTile - bottomTile + 1; 
   }
 
+  public String[] getDisplayCoordinates(float pixelX, float pixelY) {
+    
+    Log.w("TRILLIAN", "pixelX=" + pixelX + " pixelY=" + pixelY);
+    
+    float x = left + pixelX * meterPerPixel;
+    float y = top - pixelY * meterPerPixel;
+    
+    return new String[] { String.format("x=%.0f", x), String.format("y=%.0f", y) };
+  }
+  
   public Map getMap() {
     
     return map;
@@ -55,6 +86,11 @@ public class Layer {
     this.index = layerIndex;
   }
   
+  public float getMeterPerPixel() {
+    
+    return meterPerPixel;
+  }
+  
   public String getUrl(Tile tile) {
     
     return String.format(urlFormat, name, getUrlX(tile.getX()), getUrlY(tile.getY()));
@@ -62,17 +98,17 @@ public class Layer {
   
   public int getUrlX(int x) {
     
-    return left < right ? left + x : left - x;
+    return leftTile < rightTile ? leftTile + x : leftTile - x;
   }
   
   public int getUrlY(int y) {
     
-    return top < bottom ? top + y : top - y;
+    return topTile < bottomTile ? topTile + y : topTile - y;
   }
   
   public boolean hasTile(int x, int y) {
 
-    return x >= 0 && x < sizeX && y >= 0 && y < sizeY;
+    return x >= 0 && x < tilesX && y >= 0 && y < tilesY;
   }
   
   public String getName() {
@@ -87,28 +123,28 @@ public class Layer {
     return tileSizeY;
   }
 
-  public int getLeft() {
-    return left;
+  public int getLeftTile() {
+    return leftTile;
   }
 
-  public int getTop() {
-    return top;
+  public int getTopTile() {
+    return topTile;
   }
 
-  public int getRight() {
-    return right;
+  public int getRightTile() {
+    return rightTile;
   }
 
-  public int getBottom() {
-    return bottom;
+  public int getBottomTile() {
+    return bottomTile;
   }
 
   public int getSizeX() {
-    return sizeX;
+    return tilesX;
   }
 
   public int getSizeY() {
-    return sizeY;
+    return tilesY;
   }
 
   public float getMinScale() {
