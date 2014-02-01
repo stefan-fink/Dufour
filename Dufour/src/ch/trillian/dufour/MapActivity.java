@@ -1,9 +1,14 @@
 package ch.trillian.dufour;
 
 import android.app.Activity;
+import android.content.Context;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 
 public class MapActivity extends Activity {
 
@@ -11,6 +16,9 @@ public class MapActivity extends Activity {
   private MapView mapView;
   private TileCache tileCache;
   private TileLoader tileLoader;
+  
+  // true if GPS is enables
+  boolean gpsIsEnabled;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +43,75 @@ public class MapActivity extends Activity {
     getMenuInflater().inflate(R.menu.map, menu);
     return true;
   }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    
+    switch (item.getItemId()) {
+    case R.id.action_gps:
+      enableGps(!gpsIsEnabled);
+      return true;
+    }
+    
+    return super.onOptionsItemSelected(item);
+  }
+
+  @Override
+  protected void onPause() {
+
+    if (gpsIsEnabled) {
+      LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+      locationManager.removeUpdates(locationListener);
+    }
+
+    super.onPause();
+  }
+
+  @Override
+  protected void onResume() {
+
+    super.onResume();
+
+    if (gpsIsEnabled) {
+      enableGps(true);
+    }
+  }
+
+  private final void enableGps(boolean start) {
+    
+    LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+    if (start) {
+      locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
+      Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+      mapView.setLocation(location);
+    } else {
+      
+    }
+    
+    gpsIsEnabled = start;
+  }
+  
+  private final LocationListener locationListener = new LocationListener() {
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+
+      mapView.setLocation(location);
+    }
+  };
 
   private Map createMap() {
 

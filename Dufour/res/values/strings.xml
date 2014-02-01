@@ -4,4 +4,7 @@
     <string name="app_name">Dufour</string>
     <string name="action_settings">Settings</string>
 
+    <!-- Actions -->
+    <string name="action_gps">GPS</string>
+
 </resources>

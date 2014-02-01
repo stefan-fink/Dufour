@@ -274,25 +274,25 @@ public class MapView extends View {
 
     super.onDraw(canvas);
     
-    if (location != null) {
-      textPaint.setTextSize(textSize / 2);
-      float y = 0 - textPaint.ascent();
-      canvas.drawText(String.format("x: %4.0f, y: %4.0f %% %4.1f", positionX, positionY, 100 * scale), 0, 0 - textPaint.ascent(), textPaint);
-      y += textPaint.getTextSize();
-      canvas.drawText(longitudeText, 0, y, textPaint);
-      y += textPaint.getTextSize();
-      canvas.drawText(latitudeText, 0, y, textPaint);
-      y += textPaint.getTextSize();
-      canvas.drawText(altitudeText, 0, y, textPaint);
-      y += textPaint.getTextSize();
-      canvas.drawText(speedText, 0, y, textPaint);
-      y += textPaint.getTextSize();
-      canvas.drawText(bearingText, 0, y, textPaint);
-      y += textPaint.getTextSize();
-      canvas.drawText(accuracyText, 0, y, textPaint);
-      y += textPaint.getTextSize();
-      canvas.drawText(timeText, 0, y, textPaint);
-    }
+//    if (location != null) {
+//      textPaint.setTextSize(textSize / 2);
+//      float y = 0 - textPaint.ascent();
+//      canvas.drawText(String.format("x: %4.0f, y: %4.0f %% %4.1f", positionX, positionY, 100 * scale), 0, 0 - textPaint.ascent(), textPaint);
+//      y += textPaint.getTextSize();
+//      canvas.drawText(longitudeText, 0, y, textPaint);
+//      y += textPaint.getTextSize();
+//      canvas.drawText(latitudeText, 0, y, textPaint);
+//      y += textPaint.getTextSize();
+//      canvas.drawText(altitudeText, 0, y, textPaint);
+//      y += textPaint.getTextSize();
+//      canvas.drawText(speedText, 0, y, textPaint);
+//      y += textPaint.getTextSize();
+//      canvas.drawText(bearingText, 0, y, textPaint);
+//      y += textPaint.getTextSize();
+//      canvas.drawText(accuracyText, 0, y, textPaint);
+//      y += textPaint.getTextSize();
+//      canvas.drawText(timeText, 0, y, textPaint);
+//    }
 
     canvas.save();
     canvas.scale(scale, scale);
@@ -413,6 +413,14 @@ public class MapView extends View {
 
     this.location = location;
 
+
+    float[] mapPixel = new float[2];
+    
+    layer.locationToMapPixel(location, mapPixel);
+    positionX = centerX / scale - mapPixel[0];
+    positionY = centerY / scale - mapPixel[1];
+    
+    
 //    // convert to ch1903
 //    double[] result = new double[3];
 //    wgs84toCh1903(location.getLatitude(), location.getLongitude(), location.getAltitude(), result);
