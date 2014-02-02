@@ -7,6 +7,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -19,6 +20,9 @@ public class MapActivity extends Activity {
   
   // true if GPS is enables
   boolean gpsIsEnabled;
+  
+  // our optionMenu
+  private Menu optionMenu;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +45,7 @@ public class MapActivity extends Activity {
   public boolean onCreateOptionsMenu(Menu menu) {
 
     getMenuInflater().inflate(R.menu.map, menu);
+    optionMenu = menu;
     return true;
   }
 
@@ -57,6 +62,31 @@ public class MapActivity extends Activity {
     return super.onOptionsItemSelected(item);
   }
 
+  @Override
+  public boolean dispatchKeyEvent(KeyEvent event) {
+
+    int action = event.getAction();
+    int keyCode = event.getKeyCode();
+    
+    switch (keyCode) {
+    
+    case KeyEvent.KEYCODE_VOLUME_UP:
+      if (action == KeyEvent.ACTION_DOWN) {
+        mapView.scale(1.3f);
+      }
+      return true;
+      
+    case KeyEvent.KEYCODE_VOLUME_DOWN:
+      if (action == KeyEvent.ACTION_DOWN) {
+        mapView.scale(1/1.3f);
+      }
+      return true;
+      
+    default:
+      return super.dispatchKeyEvent(event);
+    }
+  }
+  
   @Override
   protected void onPause() {
 
@@ -88,6 +118,14 @@ public class MapActivity extends Activity {
     } else {
       locationManager.removeUpdates(locationListener);
       mapView.setGpsLocation(null);
+    }
+    
+    // change GPS icon
+    if (optionMenu != null) {
+      MenuItem actionGps = optionMenu.findItem(R.id.action_gps);
+      if (actionGps != null) {
+        actionGps.setIcon(start ? R.drawable.ic_action_gps_off : R.drawable.ic_action_gps);
+      }
     }
   }
   

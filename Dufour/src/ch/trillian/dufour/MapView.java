@@ -118,50 +118,61 @@ public class MapView extends View {
     mGestureDetector = new GestureDetector(context, new GestureListener());
   }
 
+  public void scale(float scaleFactor) {
+    
+    scale(scaleFactor, screenSizeX / 2, screenSizeY / 2);
+  }
+  
+  public void scale(float scaleFactor, float gFocusX, float gFocusY) {
+    
+    float newScale = scale * scaleFactor;
+
+    // focal point in map-pixels
+    float focusX = gFocusX / scale - positionX;
+    float focusY = gFocusY / scale - positionY;
+
+    if (newScale > layer.getMaxScale()) {
+      
+      // try to zoom layer in
+      Layer newLayer = layer.getLayerIn();
+      if (newLayer != null) {
+        float scaleRatio = newLayer.getMeterPerPixel() / layer.getMeterPerPixel();
+        newScale *= scaleRatio;
+        focusX /= scaleRatio;
+        focusY /= scaleRatio;
+        layer = newLayer;
+      }
+      
+    } else if (newScale < layer.getMinScale()) {
+      
+      // try to zoom layer out
+      Layer newLayer = layer.getLayerOut();
+      if (newLayer != null) {
+        float scaleRatio = newLayer.getMeterPerPixel() / layer.getMeterPerPixel();
+        newScale = newScale * scaleRatio;
+        focusX /= scaleRatio;
+        focusY /= scaleRatio;
+        layer = newLayer;
+      }
+    }
+    
+    // Don't let the object get too small or too large.
+    newScale = Math.max(layer.getMinScale(), Math.min(newScale, layer.getMaxScale()));
+
+    positionX = gFocusX / newScale - focusX;
+    positionY = gFocusY / newScale - focusY;
+
+    scale = newScale;
+
+    invalidate();
+  }
+  
+
   private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
 
-      float newScale = scale * detector.getScaleFactor();
-
-      // focal point in map-pixels
-      float focusX = detector.getFocusX() / scale - positionX;
-      float focusY = detector.getFocusY() / scale - positionY;
-
-      if (newScale > layer.getMaxScale()) {
-        
-        // try to zoom layer in
-        Layer newLayer = layer.getLayerIn();
-        if (newLayer != null) {
-          float scaleRatio = newLayer.getMeterPerPixel() / layer.getMeterPerPixel();
-          newScale *= scaleRatio;
-          focusX /= scaleRatio;
-          focusY /= scaleRatio;
-          layer = newLayer;
-        }
-        
-      } else if (newScale < layer.getMinScale()) {
-        
-        // try to zoom layer out
-        Layer newLayer = layer.getLayerOut();
-        if (newLayer != null) {
-          float scaleRatio = newLayer.getMeterPerPixel() / layer.getMeterPerPixel();
-          newScale = newScale * scaleRatio;
-          focusX /= scaleRatio;
-          focusY /= scaleRatio;
-          layer = newLayer;
-        }
-      }
-      
-      // Don't let the object get too small or too large.
-      newScale = Math.max(layer.getMinScale(), Math.min(newScale, layer.getMaxScale()));
-
-      positionX = detector.getFocusX() / newScale - focusX;
-      positionY = detector.getFocusY() / newScale - focusY;
-
-      scale = newScale;
-
-      invalidate();
+      scale(detector.getScaleFactor(), detector.getFocusX(), detector.getFocusY());
       return true;
     }
   }
@@ -242,6 +253,7 @@ public class MapView extends View {
         positionY += dy / scale;
 
         // disable gps tracking
+        // TODO: this is a halfway working workaround
         if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
           trackGps = false;
           Log.w("TRILLIAN", "scaling() trackGps=" + trackGps);
@@ -378,7 +390,7 @@ public class MapView extends View {
       layer.locationToMapPixel(lastGpsLocation, mapPixel);
       canvas.translate(mapPixel[0], mapPixel[1]);
       canvas.scale(1f/scale, 1f/scale);
-      crossPaint.setColor(0xFFFF0000);
+      crossPaint.setColor(trackGps ? 0xFFFF0000 : 0xFF0000FF);
       crossPaint.setStyle(Paint.Style.FILL);
       canvas.drawCircle(0, 0, crossSize * 0.25f, crossPaint);
       crossPaint.setStyle(Paint.Style.STROKE);
