@@ -1,6 +1,5 @@
 package ch.trillian.dufour;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -81,14 +80,6 @@ public class MapView extends View {
   // current location stuff
   private Location lastGpsLocation;
   private boolean trackGps;
-  
-  private String latitudeText;
-  private String longitudeText;
-  private String altitudeText;
-  private String accuracyText;
-  private String speedText;
-  private String bearingText;
-  private String timeText;
 
   public MapView(Context context, AttributeSet attrs) {
 
@@ -123,13 +114,13 @@ public class MapView extends View {
     scale(scaleFactor, (float) screenSizeX / 2, (float) screenSizeY / 2);
   }
   
-  public void scale(float scaleFactor, float gFocusX, float gFocusY) {
+  public void scale(float scaleFactor, float focusScreenX, float focusScreenY) {
     
     float newScale = scale * scaleFactor;
 
     // focal point in map-pixels
-    float focusX = gFocusX / scale - positionX;
-    float focusY = gFocusY / scale - positionY;
+    float focusMapX = screen2map(focusScreenX, scale, positionX);
+    float focusMapY = screen2map(focusScreenY, scale, positionY);
 
     if (newScale > layer.getMaxScale()) {
       
@@ -138,8 +129,8 @@ public class MapView extends View {
       if (newLayer != null) {
         float scaleRatio = newLayer.getMeterPerPixel() / layer.getMeterPerPixel();
         newScale *= scaleRatio;
-        focusX /= scaleRatio;
-        focusY /= scaleRatio;
+        focusMapX /= scaleRatio;
+        focusMapY /= scaleRatio;
         layer = newLayer;
       }
       
@@ -150,8 +141,8 @@ public class MapView extends View {
       if (newLayer != null) {
         float scaleRatio = newLayer.getMeterPerPixel() / layer.getMeterPerPixel();
         newScale = newScale * scaleRatio;
-        focusX /= scaleRatio;
-        focusY /= scaleRatio;
+        focusMapX /= scaleRatio;
+        focusMapY /= scaleRatio;
         layer = newLayer;
       }
     }
@@ -159,8 +150,8 @@ public class MapView extends View {
     // Don't let the object get too small or too large.
     newScale = Math.max(layer.getMinScale(), Math.min(newScale, layer.getMaxScale()));
 
-    positionX = gFocusX / newScale - focusX;
-    positionY = gFocusY / newScale - focusY;
+    positionX = focusScreenX / newScale - focusMapX;
+    positionY = focusScreenY / newScale - focusMapY;
 
     scale = newScale;
 
@@ -252,11 +243,19 @@ public class MapView extends View {
         positionX += dx / scale;
         positionY += dy / scale;
 
-        // disable gps tracking
-        // TODO: this is a halfway working workaround
-        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-          trackGps = false;
-          Log.w("TRILLIAN", "scaling() trackGps=" + trackGps);
+        // disable gps tracking if we moved too far away from GPS location
+        if (lastGpsLocation != null && trackGps) {
+          
+          // calculate screen pixel coordinates of GPS location
+          float[] mapPixel = new float[2];
+          layer.locationToMapPixel(lastGpsLocation, mapPixel);
+          float deltaX = map2screen(mapPixel[0], scale, positionX) - centerX;
+          float deltaY = map2screen(mapPixel[1], scale, positionY) - centerY;
+          float deltaSquare = deltaX * deltaX + deltaY * deltaY;
+          float gpsTrackDistance = Math.min(screenSizeX, screenSizeX) / 10;
+          if (deltaSquare > gpsTrackDistance * gpsTrackDistance) {
+            trackGps = false;
+          }
         }
         
         invalidate();
@@ -292,30 +291,20 @@ public class MapView extends View {
     return true;
   }
 
+  private final float map2screen(float map, float scale, float position) {
+    
+    return (position + map) * scale;
+  }
+  
+  private final float screen2map(float screen, float scale, float position) {
+    
+    return screen / scale - position;
+  }
+  
   protected void onDraw(Canvas canvas) {
 
     super.onDraw(canvas);
     
-//    if (location != null) {
-//      textPaint.setTextSize(textSize / 2);
-//      float y = 0 - textPaint.ascent();
-//      canvas.drawText(String.format("x: %4.0f, y: %4.0f %% %4.1f", positionX, positionY, 100 * scale), 0, 0 - textPaint.ascent(), textPaint);
-//      y += textPaint.getTextSize();
-//      canvas.drawText(longitudeText, 0, y, textPaint);
-//      y += textPaint.getTextSize();
-//      canvas.drawText(latitudeText, 0, y, textPaint);
-//      y += textPaint.getTextSize();
-//      canvas.drawText(altitudeText, 0, y, textPaint);
-//      y += textPaint.getTextSize();
-//      canvas.drawText(speedText, 0, y, textPaint);
-//      y += textPaint.getTextSize();
-//      canvas.drawText(bearingText, 0, y, textPaint);
-//      y += textPaint.getTextSize();
-//      canvas.drawText(accuracyText, 0, y, textPaint);
-//      y += textPaint.getTextSize();
-//      canvas.drawText(timeText, 0, y, textPaint);
-//    }
-
     canvas.save();
     canvas.scale(scale, scale);
     canvas.translate(positionX, positionY);
@@ -402,7 +391,7 @@ public class MapView extends View {
     canvas.restore();
 
     // draw coordinates
-    String[] displayCoordinates = layer.getDisplayCoordinates(centerX / scale - positionX, centerY / scale - positionY);
+    String[] displayCoordinates = layer.getDisplayCoordinates(screen2map(centerX, scale, positionX), screen2map(centerY, scale, positionY));
     textPaint.setTextSize(textSize);
     y = 0 - textPaint.ascent();
     canvas.drawText(String.format("%s @ %1.2f [%s, %s]", layer.getName(), scale, displayCoordinates[0], displayCoordinates[1]), 10, y, textPaint);
