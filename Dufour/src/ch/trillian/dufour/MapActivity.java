@@ -49,7 +49,8 @@ public class MapActivity extends Activity {
     
     switch (item.getItemId()) {
     case R.id.action_gps:
-      enableGps(!gpsIsEnabled);
+      gpsIsEnabled = !gpsIsEnabled;
+      enableGps(gpsIsEnabled);
       return true;
     }
     
@@ -60,8 +61,7 @@ public class MapActivity extends Activity {
   protected void onPause() {
 
     if (gpsIsEnabled) {
-      LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-      locationManager.removeUpdates(locationListener);
+      enableGps(false);
     }
 
     super.onPause();
@@ -84,12 +84,11 @@ public class MapActivity extends Activity {
     if (start) {
       locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
       Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-      mapView.setLocation(location);
+      mapView.setGpsLocation(location);
     } else {
-      
+      locationManager.removeUpdates(locationListener);
+      mapView.setGpsLocation(null);
     }
-    
-    gpsIsEnabled = start;
   }
   
   private final LocationListener locationListener = new LocationListener() {
@@ -109,7 +108,7 @@ public class MapActivity extends Activity {
     @Override
     public void onLocationChanged(Location location) {
 
-      mapView.setLocation(location);
+      mapView.setGpsLocation(location);
     }
   };
 

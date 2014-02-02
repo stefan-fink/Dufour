@@ -79,7 +79,9 @@ public class MapView extends View {
   GestureDetector mGestureDetector;
 
   // current location stuff
-  private Location location;
+  private Location lastGpsLocation;
+  private boolean trackGps;
+  
   private String latitudeText;
   private String longitudeText;
   private String altitudeText;
@@ -174,9 +176,11 @@ public class MapView extends View {
     public boolean onDoubleTap(MotionEvent e) {
 
       // reset viewport
-      scale = 2.0f;
-
-      invalidate();
+      if (lastGpsLocation != null) {
+        trackGps = true;
+        setGpsLocation(lastGpsLocation);
+      }
+      
       return true;
     }
   }
@@ -237,6 +241,12 @@ public class MapView extends View {
         positionX += dx / scale;
         positionY += dy / scale;
 
+        // disable gps tracking
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+          trackGps = false;
+          Log.w("TRILLIAN", "scaling() trackGps=" + trackGps);
+        }
+        
         invalidate();
       }
 
@@ -361,6 +371,22 @@ public class MapView extends View {
       x += incX;
     }
     
+    // draw gps position
+    if (lastGpsLocation != null) {
+      canvas.save();
+      float[] mapPixel = new float[2]; 
+      layer.locationToMapPixel(lastGpsLocation, mapPixel);
+      canvas.translate(mapPixel[0], mapPixel[1]);
+      canvas.scale(1f/scale, 1f/scale);
+      crossPaint.setColor(0xFFFF0000);
+      crossPaint.setStyle(Paint.Style.FILL);
+      canvas.drawCircle(0, 0, crossSize * 0.25f, crossPaint);
+      crossPaint.setStyle(Paint.Style.STROKE);
+      crossPaint.setColor(0xff000000);
+      canvas.drawCircle(0, 0, crossSize * 0.25f, crossPaint);
+      canvas.restore();
+    }
+    
     canvas.restore();
 
     // draw coordinates
@@ -368,7 +394,10 @@ public class MapView extends View {
     textPaint.setTextSize(textSize);
     y = 0 - textPaint.ascent();
     canvas.drawText(String.format("%s @ %1.2f [%s, %s]", layer.getName(), scale, displayCoordinates[0], displayCoordinates[1]), 10, y, textPaint);
-    
+    textPaint.setColor(0x60808080);
+    canvas.drawRect(0f,  0f, screenSizeX, textPaint.getTextSize() + textPaint.descent(), textPaint);
+    textPaint.setColor(0xFF000000);
+   
     // draw cross
     canvas.save();
     canvas.translate(centerX, centerY);
@@ -403,23 +432,30 @@ public class MapView extends View {
     invalidate();
   }
 
-  public Location getLocation() {
+  public void setGpsLocation(Location location) {
 
-    return location;
-  }
-
-  @SuppressLint("SimpleDateFormat")
-  public void setLocation(Location location) {
-
-    this.location = location;
-
-
-    float[] mapPixel = new float[2];
+    Log.w("TRILLIAN", "setGpsLocation() trackGps=" + trackGps);
     
-    layer.locationToMapPixel(location, mapPixel);
-    positionX = centerX / scale - mapPixel[0];
-    positionY = centerY / scale - mapPixel[1];
+    if (location == null) {
+      lastGpsLocation = null;
+      trackGps = false;
+      invalidate();
+      return;
+    }
+
+    if (lastGpsLocation == null) {
+      trackGps = true;
+    }
     
+    lastGpsLocation = location;
+
+    // center map to gps position if we're tracking
+    if (trackGps) {
+      float[] mapPixel = new float[2];
+      layer.locationToMapPixel(location, mapPixel);
+      positionX = centerX / scale - mapPixel[0];
+      positionY = centerY / scale - mapPixel[1];
+    }
     
 //    // convert to ch1903
 //    double[] result = new double[3];
