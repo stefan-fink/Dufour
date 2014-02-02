@@ -13,6 +13,10 @@ import android.view.MenuItem;
 
 public class MapActivity extends Activity {
 
+  // constants for zooming in via volume up/down
+  private static final float ZOOM_FACTOR = 1.3f;
+  private static final int ZOOM_REPEAT_SLOWDOWN = 3;
+  
   private final Map map = createMap();
   private MapView mapView;
   private TileCache tileCache;
@@ -72,13 +76,23 @@ public class MapActivity extends Activity {
     
     case KeyEvent.KEYCODE_VOLUME_UP:
       if (action == KeyEvent.ACTION_DOWN) {
-        mapView.scale(1.3f);
+        if (event.getRepeatCount() == 0) {
+          mapView.scale(ZOOM_FACTOR);
+        } else {
+          float zoomFactor = 1f + (ZOOM_FACTOR - 1f) / ZOOM_REPEAT_SLOWDOWN;
+          mapView.scale(zoomFactor);
+        }
       }
       return true;
       
     case KeyEvent.KEYCODE_VOLUME_DOWN:
       if (action == KeyEvent.ACTION_DOWN) {
-        mapView.scale(1/1.3f);
+        if (event.getRepeatCount() == 0) {
+          mapView.scale(1/ZOOM_FACTOR);
+        } else {
+          float zoomFactor = 1f + (ZOOM_FACTOR - 1f) / ZOOM_REPEAT_SLOWDOWN;
+          mapView.scale(1f/zoomFactor);
+        }
       }
       return true;
       
