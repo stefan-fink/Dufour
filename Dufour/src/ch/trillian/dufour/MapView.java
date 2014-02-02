@@ -120,7 +120,7 @@ public class MapView extends View {
 
   public void scale(float scaleFactor) {
     
-    scale(scaleFactor, screenSizeX / 2, screenSizeY / 2);
+    scale(scaleFactor, (float) screenSizeX / 2, (float) screenSizeY / 2);
   }
   
   public void scale(float scaleFactor, float gFocusX, float gFocusY) {
