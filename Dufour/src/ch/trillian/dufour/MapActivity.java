@@ -209,6 +209,14 @@ public class MapActivity extends Activity {
       
       return tileCache.getTile(layer, x, y);
     }
+    
+    @Override
+    public void preloadRegion(Layer layer, int minTileX, int maxTileX, int minTileY, int maxTileY) {
+      
+      if (tileCache != null) {
+        tileCache.preloadRegion(layer, minTileX, maxTileX, minTileY, maxTileY);
+      }
+    }
   }
   
   private class LoadListener implements TileLoader.LoadListener {

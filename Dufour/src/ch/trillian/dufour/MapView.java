@@ -20,6 +20,8 @@ public class MapView extends View {
     public void onSizeChanged(int w, int h, int oldw, int oldh);
 
     public Tile onGetTile(Layer layer, int x, int y);
+    
+    public void preloadRegion(Layer layer, int minTileX, int maxTileX, int minTileY, int maxTileY);
   }
   
   // view listener (our activity)
@@ -410,10 +412,26 @@ public class MapView extends View {
 
   private void updateTilesMinMax() {
     
-    minTileX = (int) Math.floor(-positionX / layer.getTileSizeX());
-    maxTileX = (int) Math.floor((screenSizeX / scale - positionX) / layer.getTileSizeX());
-    minTileY = (int) Math.floor(-positionY / layer.getTileSizeY());
-    maxTileY = (int) Math.floor((screenSizeY / scale - positionY) / layer.getTileSizeY());
+    // calculate new tile-region
+    int minTileXnew = (int) Math.floor(-positionX / layer.getTileSizeX());
+    int maxTileXnew = (int) Math.floor((screenSizeX / scale - positionX) / layer.getTileSizeX());
+    int minTileYnew = (int) Math.floor(-positionY / layer.getTileSizeY());
+    int maxTileYnew = (int) Math.floor((screenSizeY / scale - positionY) / layer.getTileSizeY());
+    
+    // remember new values and preload new region
+    if (minTileXnew != minTileX || maxTileXnew != maxTileX || minTileYnew != minTileY || maxTileYnew != maxTileY) {
+      
+      // remember new values
+      minTileX = minTileXnew;
+      maxTileX = maxTileXnew;
+      minTileY = minTileYnew;
+      maxTileY = maxTileYnew;
+      
+      // preload tiles
+      if (viewListener != null) {
+        viewListener.preloadRegion(layer, minTileX, maxTileX, minTileY, maxTileY);
+      }
+    }
   }
   
   public String getLabelText() {
@@ -457,22 +475,6 @@ public class MapView extends View {
       positionX = centerX / scale - mapPixel[0];
       positionY = centerY / scale - mapPixel[1];
     }
-    
-//    // convert to ch1903
-//    double[] result = new double[3];
-//    wgs84toCh1903(location.getLatitude(), location.getLongitude(), location.getAltitude(), result);
-//    double x = result[0];
-//    double y = result[1];
-//    double h = result[2];
-//
-//    // prepare texts
-//    latitudeText = String.format("Latitude: %3.0f", x);
-//    longitudeText = String.format("Longitude: %3.0f", y);
-//    altitudeText = location.hasAltitude() ? String.format("Altitude: %3.0f m", h) : "Altitude: -";
-//    speedText = location.hasSpeed() ? String.format("Speed: %3.0f km/h", location.getSpeed() * 3.6) : "Speed: -";
-//    bearingText = location.hasBearing() ? String.format("Bearing: %3.0f", location.getBearing()) : "Bearing: -";
-//    accuracyText = location.hasAccuracy() ? String.format("Accuracy: %3.0f m", location.getAccuracy()) : "Accuracy: -";
-//    timeText = String.format("Time: %s", new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(location.getTime()));
 
     invalidate();
   }

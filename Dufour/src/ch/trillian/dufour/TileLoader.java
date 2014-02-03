@@ -112,6 +112,7 @@ public class TileLoader {
         }
 
       } catch (Exception e) {
+        // TODO: if loading failed, somehow we should reflect this in the TileCache
         Log.w("TRILLIAN", "Exception: " + e.getMessage(), e);
       }
 
