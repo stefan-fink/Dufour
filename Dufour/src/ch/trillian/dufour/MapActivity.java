@@ -13,6 +13,13 @@ import android.view.MenuItem;
 
 public class MapActivity extends Activity {
 
+  // key used for storing instance state
+  private static final String KEY_LOCATION = "location";
+  private static final String KEY_LAYER_INDEX = "layerIndex";
+  private static final String KEY_SCALE = "scale";
+  private static final String KEY_GPS_ENABLED = "gpsEnabled";
+  private static final String KEY_GPS_TRACKING = "gpsTracking";
+  
   // constants for zooming in via volume up/down
   private static final float ZOOM_FACTOR = 1.3f;
   private static final int ZOOM_REPEAT_SLOWDOWN = 3;
@@ -24,6 +31,7 @@ public class MapActivity extends Activity {
   
   // true if GPS is enables
   boolean gpsIsEnabled;
+  boolean gpsIsTracking;
   
   // our optionMenu
   private Menu optionMenu;
@@ -33,16 +41,65 @@ public class MapActivity extends Activity {
     
     super.onCreate(savedInstanceState);
 
-    // init loader
+    // initialize loader
     tileLoader = new TileLoader(this);
     tileLoader.setLoadListener(new LoadListener());
 
-    // init view
+    // initialize view
     setContentView(R.layout.activity_map);
     mapView = (MapView) findViewById(R.id.map_view);
     mapView.setLayer(map.getLayer(0));
     mapView.setViewListener(new MapViewListener());
     
+    // retrieve state
+    if (savedInstanceState != null) {
+      mapView.setScale(savedInstanceState.getFloat(KEY_SCALE));
+      mapView.setLayer(map.getLayer(savedInstanceState.getInt(KEY_LAYER_INDEX)));
+      mapView.setLocation((Location) savedInstanceState.getParcelable(KEY_LOCATION));
+      gpsIsEnabled = savedInstanceState.getBoolean(KEY_GPS_ENABLED);
+      boolean gpsIsTracking = savedInstanceState.getBoolean(KEY_GPS_TRACKING);
+      Log.w("TRILLIAN", "read gpsIsTracking=" + gpsIsTracking);
+      enableGps(gpsIsEnabled);
+      mapView.setGpsTracking(gpsIsTracking);
+    }
+  }
+
+  @Override
+  protected void onSaveInstanceState(Bundle outState) {
+    
+    super.onSaveInstanceState(outState);
+    outState.putParcelable(KEY_LOCATION, mapView.getLocation());
+    outState.putInt(KEY_LAYER_INDEX, mapView.getLayer().getIndex());
+    outState.putFloat(KEY_SCALE, mapView.getScale());
+    outState.putBoolean(KEY_GPS_ENABLED, gpsIsEnabled);
+    outState.putBoolean(KEY_GPS_TRACKING, mapView.isGpsTracking());
+    Log.w("TRILLIAN", "written gpsIsTracking=" + mapView.isGpsTracking());
+  }
+
+  @Override
+  protected void onPause() {
+
+    Log.w("TRILLIAN", "onPause()");
+
+    gpsIsTracking = mapView.isGpsTracking();
+    if (gpsIsEnabled) {
+      enableGps(false);
+    }
+
+    super.onPause();
+  }
+
+  @Override
+  protected void onResume() {
+
+    Log.w("TRILLIAN", "onResume()");
+    
+    super.onResume();
+
+    if (gpsIsEnabled) {
+      enableGps(true);
+      mapView.setGpsTracking(gpsIsTracking);
+    }
   }
 
   @Override
@@ -50,6 +107,7 @@ public class MapActivity extends Activity {
 
     getMenuInflater().inflate(R.menu.map, menu);
     optionMenu = menu;
+    setActionGpsIcon(gpsIsEnabled);
     return true;
   }
 
@@ -60,6 +118,7 @@ public class MapActivity extends Activity {
     case R.id.action_gps:
       gpsIsEnabled = !gpsIsEnabled;
       enableGps(gpsIsEnabled);
+      mapView.setGpsTracking(gpsIsEnabled);
       return true;
     }
     
@@ -101,26 +160,16 @@ public class MapActivity extends Activity {
     }
   }
   
-  @Override
-  protected void onPause() {
-
-    if (gpsIsEnabled) {
-      enableGps(false);
-    }
-
-    super.onPause();
-  }
-
-  @Override
-  protected void onResume() {
-
-    super.onResume();
-
-    if (gpsIsEnabled) {
-      enableGps(true);
+  private final void setActionGpsIcon(boolean start) {
+    
+    if (optionMenu != null) {
+      MenuItem actionGps = optionMenu.findItem(R.id.action_gps);
+      if (actionGps != null) {
+        actionGps.setIcon(start ? R.drawable.ic_action_gps_off : R.drawable.ic_action_gps);
+      }
     }
   }
-
+  
   private final void enableGps(boolean start) {
     
     LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -135,12 +184,7 @@ public class MapActivity extends Activity {
     }
     
     // change GPS icon
-    if (optionMenu != null) {
-      MenuItem actionGps = optionMenu.findItem(R.id.action_gps);
-      if (actionGps != null) {
-        actionGps.setIcon(start ? R.drawable.ic_action_gps_off : R.drawable.ic_action_gps);
-      }
-    }
+    setActionGpsIcon(start);
   }
   
   private final LocationListener locationListener = new LocationListener() {

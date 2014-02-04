@@ -22,6 +22,8 @@ public class MapView extends View {
     public Tile onGetTile(Layer layer, int x, int y);
     
     public void preloadRegion(Layer layer, int minTileX, int maxTileX, int minTileY, int maxTileY);
+    
+    // public void gpsIsTracking(boolean isTracking);
   }
   
   // view listener (our activity)
@@ -60,9 +62,9 @@ public class MapView extends View {
   // position and zoom
   // pixelX = (positionX + x) * scale 
   // x = pixelX / scale - positionX
-  private float positionX = 500;
-  private float positionY = 500;
-  private float scale = 2.0f;
+  private float positionX = 0f;
+  private float positionY = 0f;
+  private float scale = 1f;
 
   // min and max coordinates of tiles on screen
   private int minTileX;
@@ -81,7 +83,7 @@ public class MapView extends View {
 
   // current location stuff
   private Location lastGpsLocation;
-  private boolean trackGps;
+  private boolean gpsIsTracking;
 
   public MapView(Context context, AttributeSet attrs) {
 
@@ -111,6 +113,16 @@ public class MapView extends View {
     mGestureDetector = new GestureDetector(context, new GestureListener());
   }
 
+  public float getScale() {
+    
+    return scale;
+  }
+  
+  public void setScale(float newScale) {
+    
+    scale(newScale / scale);
+  }
+  
   public void scale(float scaleFactor) {
     
     scale(scaleFactor, (float) screenSizeX / 2, (float) screenSizeY / 2);
@@ -181,8 +193,8 @@ public class MapView extends View {
 
       // reset viewport
       if (lastGpsLocation != null) {
-        trackGps = true;
-        setGpsLocation(lastGpsLocation);
+        setGpsTracking(true);
+        setLocation(lastGpsLocation);
       }
       
       return true;
@@ -192,11 +204,17 @@ public class MapView extends View {
   @Override
   protected void onSizeChanged(int w, int h, int oldw, int oldh) {
 
+    float centerXnew = w / 2f;
+    float centerYnew = h / 2f;
+    
+    positionX = (centerXnew - centerX + positionX * scale) / scale;
+    positionY = (centerYnew - centerY + positionY * scale) / scale;
+
     screenSizeX = w;
     screenSizeY = h;
     
-    centerX = w / 2f;
-    centerY = h / 2f;
+    centerX = centerXnew;
+    centerY = centerYnew;
     
     if (viewListener != null) {
       viewListener.onSizeChanged(w, h, oldw, oldh);
@@ -246,7 +264,7 @@ public class MapView extends View {
         positionY += dy / scale;
 
         // disable gps tracking if we moved too far away from GPS location
-        if (lastGpsLocation != null && trackGps) {
+        if (lastGpsLocation != null && gpsIsTracking) {
           
           // calculate screen pixel coordinates of GPS location
           float[] mapPixel = new float[2];
@@ -256,7 +274,7 @@ public class MapView extends View {
           float deltaSquare = deltaX * deltaX + deltaY * deltaY;
           float gpsTrackDistance = Math.min(screenSizeX, screenSizeX) / 10;
           if (deltaSquare > gpsTrackDistance * gpsTrackDistance) {
-            trackGps = false;
+            setGpsTracking(false);
           }
         }
         
@@ -381,7 +399,7 @@ public class MapView extends View {
       layer.locationToMapPixel(lastGpsLocation, mapPixel);
       canvas.translate(mapPixel[0], mapPixel[1]);
       canvas.scale(1f/scale, 1f/scale);
-      crossPaint.setColor(trackGps ? 0xFFFF0000 : 0xFF0000FF);
+      crossPaint.setColor(gpsIsTracking ? 0xFFFF0000 : 0xFF0000FF);
       crossPaint.setStyle(Paint.Style.FILL);
       canvas.drawCircle(0, 0, crossSize * 0.25f, crossPaint);
       crossPaint.setStyle(Paint.Style.STROKE);
@@ -451,34 +469,74 @@ public class MapView extends View {
     invalidate();
   }
 
+  public void setLocation(Location location) {
+
+    if (location == null) {
+      return;
+    }
+    
+    Log.w("TRILLIAN", String.format("setLocation: %f, %f", location.getLongitude(), location.getLatitude()));
+
+    float[] mapPixel = new float[2];
+    layer.locationToMapPixel(location, mapPixel);
+    positionX = centerX / scale - mapPixel[0];
+    positionY = centerY / scale - mapPixel[1];
+    
+    getLocation();
+    
+    invalidate();
+  }
+
+  public Location getLocation() {
+
+    float mapPixelX = centerX / scale - positionX;
+    float mapPixelY = centerY / scale - positionY;
+    
+    Location location = layer.mapPixel2location(mapPixelX, mapPixelY);
+    
+    Log.w("TRILLIAN", String.format("getLocation: %f, %f", location.getLongitude(), location.getLatitude()));
+
+    return location;
+  }
+
   public void setGpsLocation(Location location) {
 
-    Log.w("TRILLIAN", "setGpsLocation() trackGps=" + trackGps);
+    Log.w("TRILLIAN", "setGpsLocation() trackGps=" + gpsIsTracking);
     
     if (location == null) {
       lastGpsLocation = null;
-      trackGps = false;
+      setGpsTracking(false);
       invalidate();
       return;
     }
 
-    if (lastGpsLocation == null) {
-      trackGps = true;
-    }
-    
     lastGpsLocation = location;
 
     // center map to gps position if we're tracking
-    if (trackGps) {
-      float[] mapPixel = new float[2];
-      layer.locationToMapPixel(location, mapPixel);
-      positionX = centerX / scale - mapPixel[0];
-      positionY = centerY / scale - mapPixel[1];
+    if (gpsIsTracking) {
+      setLocation(lastGpsLocation);
     }
 
     invalidate();
   }
 
+  public void setGpsTracking(boolean track) {
+    
+    gpsIsTracking = track;
+
+    // center map to gps position if we're tracking
+    if (track) {
+      setLocation(lastGpsLocation);
+    }
+
+    invalidate();
+  }
+  
+  public boolean isGpsTracking() {
+    
+    return gpsIsTracking;
+  }
+  
   private void initPainters() {
 
     textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -502,6 +560,11 @@ public class MapView extends View {
     crossPaint.setStrokeWidth(crossStroke);
 
     tilePaint = new Paint(0);
+  }
+  
+  public Layer getLayer() {
+    
+    return layer;
   }
   
   public void setLayer(Layer layer) {

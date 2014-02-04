@@ -64,19 +64,25 @@ public class Layer {
   }
   
   public void locationToMapPixel(Location location, float[] mapPixel) {
-  
-    double[] ch1903 = new double[3];
     
-    Log.w("", String.format("GPS: %.2f, %.2f", location.getLatitude(), location.getLongitude()));
-
-    Ch1903.wgs84toCh1903(location.getLatitude(), location.getLongitude(), location.getAltitude(), ch1903);
-
-    Log.w("", String.format("GPS: %.2f, %.2f", ch1903[0], ch1903[1]));
+    double[] ch1903 = Ch1903.wgs84toCh1903(location);
 
     mapPixel[0] = ((float) ch1903[1] - left) / meterPerPixel;
     mapPixel[1] = (top - (float) ch1903[0]) / meterPerPixel;
+  }
+  
+  public Location mapPixel2location(float mapPixelX, float mapPixelY) {
+    
+    float x = mapPixelX * meterPerPixel + left;
+    float y = top - mapPixelY * meterPerPixel;
 
-    Log.w("", String.format("GPS: %.0f, %.0f", mapPixel[0], mapPixel[1]));
+    double[] wgs84 = Ch1903.ch1903toWgs84to(x, y, 600f);
+
+    Location location = new Location("Dufour");
+    location.setLongitude(wgs84[0]);
+    location.setLatitude(wgs84[1]);
+    
+    return location;
   }
   
   public Map getMap() {
