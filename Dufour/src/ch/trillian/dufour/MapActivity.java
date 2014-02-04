@@ -31,7 +31,6 @@ public class MapActivity extends Activity {
   
   // true if GPS is enables
   boolean gpsIsEnabled;
-  boolean gpsIsTracking;
   
   // our optionMenu
   private Menu optionMenu;
@@ -57,10 +56,8 @@ public class MapActivity extends Activity {
       mapView.setLayer(map.getLayer(savedInstanceState.getInt(KEY_LAYER_INDEX)));
       mapView.setLocation((Location) savedInstanceState.getParcelable(KEY_LOCATION));
       gpsIsEnabled = savedInstanceState.getBoolean(KEY_GPS_ENABLED);
-      boolean gpsIsTracking = savedInstanceState.getBoolean(KEY_GPS_TRACKING);
-      Log.w("TRILLIAN", "read gpsIsTracking=" + gpsIsTracking);
-      enableGps(gpsIsEnabled);
-      mapView.setGpsTracking(gpsIsTracking);
+      mapView.setGpsLocation(startGps(gpsIsEnabled));
+      mapView.setGpsTracking(savedInstanceState.getBoolean(KEY_GPS_TRACKING));
     }
   }
 
@@ -81,9 +78,8 @@ public class MapActivity extends Activity {
 
     Log.w("TRILLIAN", "onPause()");
 
-    gpsIsTracking = mapView.isGpsTracking();
     if (gpsIsEnabled) {
-      enableGps(false);
+      startGps(false);
     }
 
     super.onPause();
@@ -97,8 +93,7 @@ public class MapActivity extends Activity {
     super.onResume();
 
     if (gpsIsEnabled) {
-      enableGps(true);
-      mapView.setGpsTracking(gpsIsTracking);
+      mapView.setGpsLocation(startGps(true));
     }
   }
 
@@ -117,7 +112,7 @@ public class MapActivity extends Activity {
     switch (item.getItemId()) {
     case R.id.action_gps:
       gpsIsEnabled = !gpsIsEnabled;
-      enableGps(gpsIsEnabled);
+      mapView.setGpsLocation(startGps(gpsIsEnabled));
       mapView.setGpsTracking(gpsIsEnabled);
       return true;
     }
@@ -170,21 +165,22 @@ public class MapActivity extends Activity {
     }
   }
   
-  private final void enableGps(boolean start) {
+  private final Location startGps(boolean start) {
     
     LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
+    Location location = null;
+    
     if (start) {
       locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
-      Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-      mapView.setGpsLocation(location);
+      location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
     } else {
       locationManager.removeUpdates(locationListener);
-      mapView.setGpsLocation(null);
     }
     
     // change GPS icon
     setActionGpsIcon(start);
+    
+    return location;
   }
   
   private final LocationListener locationListener = new LocationListener() {

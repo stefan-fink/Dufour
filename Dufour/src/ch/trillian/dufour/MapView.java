@@ -204,8 +204,8 @@ public class MapView extends View {
   @Override
   protected void onSizeChanged(int w, int h, int oldw, int oldh) {
 
-    float centerXnew = w / 2f;
-    float centerYnew = h / 2f;
+    float centerXnew = (float) w / 2f;
+    float centerYnew = (float) h / 2f;
     
     positionX = (centerXnew - centerX + positionX * scale) / scale;
     positionY = (centerYnew - centerY + positionY * scale) / scale;
@@ -414,10 +414,10 @@ public class MapView extends View {
     String[] displayCoordinates = layer.getDisplayCoordinates(screen2map(centerX, scale, positionX), screen2map(centerY, scale, positionY));
     textPaint.setTextSize(textSize);
     y = 0 - textPaint.ascent();
-    canvas.drawText(String.format("%s @ %1.2f [%s, %s]", layer.getName(), scale, displayCoordinates[0], displayCoordinates[1]), 10, y, textPaint);
-    textPaint.setColor(0x60808080);
+    textPaint.setColor(0x90FFFFFF);
     canvas.drawRect(0f,  0f, screenSizeX, textPaint.getTextSize() + textPaint.descent(), textPaint);
     textPaint.setColor(0xFF000000);
+    canvas.drawText(String.format("%s @ %1.2f [%s, %s]", layer.getName(), scale, displayCoordinates[0], displayCoordinates[1]), 10, y, textPaint);
    
     // draw cross
     canvas.save();
@@ -505,7 +505,6 @@ public class MapView extends View {
     
     if (location == null) {
       lastGpsLocation = null;
-      setGpsTracking(false);
       invalidate();
       return;
     }
