@@ -13,12 +13,13 @@ import android.view.MenuItem;
 
 public class MapActivity extends Activity {
 
-  // key used for storing instance state
+  // keys used for storing instance state
   private static final String KEY_LOCATION = "location";
   private static final String KEY_LAYER_INDEX = "layerIndex";
   private static final String KEY_SCALE = "scale";
   private static final String KEY_GPS_ENABLED = "gpsEnabled";
   private static final String KEY_GPS_TRACKING = "gpsTracking";
+  private static final String KEY_INFO_LEVEL = "infoLevel";
   
   // constants for zooming in via volume up/down
   private static final float ZOOM_FACTOR = 1.3f;
@@ -29,8 +30,11 @@ public class MapActivity extends Activity {
   private TileCache tileCache;
   private TileLoader tileLoader;
   
-  // true if GPS is enables
+  // true if GPS is enabled
   boolean gpsIsEnabled;
+  
+  // level of information to show on view
+  int infoLevel;
   
   // our optionMenu
   private Menu optionMenu;
@@ -58,6 +62,7 @@ public class MapActivity extends Activity {
       gpsIsEnabled = savedInstanceState.getBoolean(KEY_GPS_ENABLED);
       mapView.setGpsLocation(startGps(gpsIsEnabled));
       mapView.setGpsTracking(savedInstanceState.getBoolean(KEY_GPS_TRACKING));
+      infoLevel = savedInstanceState.getInt(KEY_INFO_LEVEL);
     }
   }
 
@@ -70,7 +75,7 @@ public class MapActivity extends Activity {
     outState.putFloat(KEY_SCALE, mapView.getScale());
     outState.putBoolean(KEY_GPS_ENABLED, gpsIsEnabled);
     outState.putBoolean(KEY_GPS_TRACKING, mapView.isGpsTracking());
-    Log.w("TRILLIAN", "written gpsIsTracking=" + mapView.isGpsTracking());
+    outState.putInt(KEY_INFO_LEVEL, infoLevel);
   }
 
   @Override
@@ -103,6 +108,7 @@ public class MapActivity extends Activity {
     getMenuInflater().inflate(R.menu.map, menu);
     optionMenu = menu;
     setActionGpsIcon(gpsIsEnabled);
+    setActionInfoIcon(infoLevel);
     return true;
   }
 
@@ -110,10 +116,16 @@ public class MapActivity extends Activity {
   public boolean onOptionsItemSelected(MenuItem item) {
     
     switch (item.getItemId()) {
+
     case R.id.action_gps:
       gpsIsEnabled = !gpsIsEnabled;
       mapView.setGpsLocation(startGps(gpsIsEnabled));
       mapView.setGpsTracking(gpsIsEnabled);
+      return true;
+
+    case R.id.action_info:
+      infoLevel = (infoLevel + 1) % 3;
+      setActionInfoIcon(infoLevel);
       return true;
     }
     
@@ -155,55 +167,6 @@ public class MapActivity extends Activity {
     }
   }
   
-  private final void setActionGpsIcon(boolean start) {
-    
-    if (optionMenu != null) {
-      MenuItem actionGps = optionMenu.findItem(R.id.action_gps);
-      if (actionGps != null) {
-        actionGps.setIcon(start ? R.drawable.ic_action_gps_off : R.drawable.ic_action_gps);
-      }
-    }
-  }
-  
-  private final Location startGps(boolean start) {
-    
-    LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-    Location location = null;
-    
-    if (start) {
-      locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
-      location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-    } else {
-      locationManager.removeUpdates(locationListener);
-    }
-    
-    // change GPS icon
-    setActionGpsIcon(start);
-    
-    return location;
-  }
-  
-  private final LocationListener locationListener = new LocationListener() {
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-
-      mapView.setGpsLocation(location);
-    }
-  };
-
   private Map createMap() {
 
     String urlFormat = "http://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/20140106/21781/%1$s/%3$d/%2$d.jpeg";
@@ -222,7 +185,7 @@ public class MapActivity extends Activity {
         //new Layer("26", urlFormat, 420000f, 350000f, 0.5f, 256, 256, 0, 0, 3749, 2499),
     };
 
-    return new Map("CH1903-25", layers, 0.5f, 10.0f, 1.5f, 1.5f);
+    return new Map("CH1903", layers, 0.5f, 10.0f, 1.5f, 1.5f);
   }
 
   private class MapViewListener implements MapView.ViewListener {
@@ -291,4 +254,64 @@ public class MapActivity extends Activity {
       tileLoader.cancelLoadTile(tile);
     }
   }
+
+  private final void setActionInfoIcon(int infoLevel) {
+    
+    if (optionMenu != null) {
+      MenuItem actionGps = optionMenu.findItem(R.id.action_info);
+      if (actionGps != null) {
+        actionGps.setIcon(infoLevel > 0 ? R.drawable.ic_action_info_on : R.drawable.ic_action_info_off);
+      }
+    }
+  }
+  
+  private final void setActionGpsIcon(boolean start) {
+    
+    if (optionMenu != null) {
+      MenuItem actionGps = optionMenu.findItem(R.id.action_gps);
+      if (actionGps != null) {
+        actionGps.setIcon(start ? R.drawable.ic_action_gps_on : R.drawable.ic_action_gps_off);
+      }
+    }
+  }
+  
+  private final Location startGps(boolean start) {
+    
+    LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+    Location location = null;
+    
+    // start or stop listening to GPS updates
+    if (start) {
+      locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
+      location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+    } else {
+      locationManager.removeUpdates(locationListener);
+    }
+    
+    // change GPS icon
+    setActionGpsIcon(start);
+    
+    return location;
+  }
+  
+  private final LocationListener locationListener = new LocationListener() {
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+
+      mapView.setGpsLocation(location);
+    }
+  };
 }

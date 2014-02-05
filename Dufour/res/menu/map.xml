@@ -7,8 +7,15 @@
         android:title="@string/action_settings"/>
 
     <item
+        android:id="@+id/action_info"
+        android:icon="@drawable/ic_action_info_off"
+        android:showAsAction="always"
+        android:title="@string/action_info">
+    </item>
+    
+    <item
         android:id="@+id/action_gps"
-        android:icon="@drawable/ic_action_gps"
+        android:icon="@drawable/ic_action_gps_off"
         android:showAsAction="always"
         android:title="@string/action_gps">
     </item>
