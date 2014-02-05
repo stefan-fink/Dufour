@@ -41,6 +41,7 @@ public class MapView extends View {
   private int infoTextColor;
   private int infoLineColor;
   private int infoBackColor;
+  private int infoLineStroke;
   private int textSize;
   private int gridStroke;
   private int gridTextSize;
@@ -56,8 +57,9 @@ public class MapView extends View {
   private Paint tilePaint;
 
   // bitmaps
-  private Bitmap positionBitmap;
-  private Bitmap gpsInfoBitmap;
+  private Bitmap infoLocationBitmap;
+  private Bitmap infoSpeedBitmap;
+  private Bitmap infoAltitudeBitmap;
   
   // screen size in pixel
   private int screenSizeX;
@@ -92,7 +94,8 @@ public class MapView extends View {
   // GPS
   private Location lastGpsLocation;
   private boolean gpsIsTracking;
-  private String gpsSpeed;
+  private String infoSpeed;
+  private String infoAltitude;
   
   // true if info is displayed
   private boolean showInfo;
@@ -108,6 +111,7 @@ public class MapView extends View {
       infoTextColor = a.getColor(R.styleable.MapView_infoTextColor, 0xFF000000);
       infoLineColor = a.getColor(R.styleable.MapView_infoLineColor, 0xFF000000);
       infoBackColor = a.getColor(R.styleable.MapView_infoBackColor, 0x80FFFFFF);
+      infoLineStroke = a.getDimensionPixelSize(R.styleable.MapView_infoLineStroke, 1);
       textSize = a.getDimensionPixelSize(R.styleable.MapView_textSize, 10);
       gridStroke = a.getDimensionPixelSize(R.styleable.MapView_gridStroke, 1);
       gridTextSize = a.getDimensionPixelSize(R.styleable.MapView_gridTextSize, 10);
@@ -117,16 +121,13 @@ public class MapView extends View {
       a.recycle();
     }
 
-    Log.w("TRILLIAN", "textSize=" + textSize);
-    Log.w("TRILLIAN", "crossSize=" + crossSize);
-    Log.w("TRILLIAN", "crossStroke=" + crossStroke);
-
     // init painters
     initPainters();
 
     // preload bitmaps
-    positionBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_action_gps_on);
-    gpsInfoBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_action_info_on);
+    infoLocationBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_info_location);
+    infoSpeedBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_info_speed);
+    infoAltitudeBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_info_altitude);
     
     // Create our ScaleGestureDetector
     mScaleGestureDetector = new ScaleGestureDetector(context, new ScaleListener());
@@ -418,10 +419,10 @@ public class MapView extends View {
       canvas.scale(1f/scale, 1f/scale);
       crossPaint.setColor(gpsIsTracking ? 0xFFFF0000 : 0xFF0000FF);
       crossPaint.setStyle(Paint.Style.FILL);
-      canvas.drawCircle(0, 0, crossSize * 0.25f, crossPaint);
+      canvas.drawCircle(0, 0, crossSize * 0.4f, crossPaint);
       crossPaint.setStyle(Paint.Style.STROKE);
       crossPaint.setColor(0xff000000);
-      canvas.drawCircle(0, 0, crossSize * 0.25f, crossPaint);
+      canvas.drawCircle(0, 0, crossSize * 0.4f, crossPaint);
       canvas.restore();
     }
     
@@ -433,34 +434,36 @@ public class MapView extends View {
       float lineHeight = infoPaint.getFontSpacing() * 1.3f;
       
       // draw background
-      x= 0f; 
       y = 0f;
       int lines = lastGpsLocation == null ? 1 : 2;
       infoPaint.setColor(infoBackColor);
-      canvas.drawRect(x, y, screenSizeX, lines * lineHeight, infoPaint);
+      canvas.drawRect(0f, y, screenSizeX, lines * lineHeight, infoPaint);
      
       // draw coordinates
       String[] displayCoordinates = layer.getDisplayCoordinates(screen2map(centerX, scale, positionX), screen2map(centerY, scale, positionY));
       String text = String.format("%s, %s (%1.2f@%s)", displayCoordinates[0], displayCoordinates[1], scale, layer.getName());
-      drawInfoText(canvas, positionBitmap, text, lineHeight, x, y, infoPaint);
+      drawInfoText(canvas, infoLocationBitmap, text, 0f, y, screenSizeX, lineHeight, infoPaint);
 
       // draw GPS details
       if (lastGpsLocation != null) {
         y += lineHeight;
-        drawInfoText(canvas, gpsInfoBitmap, gpsSpeed, lineHeight, x, y, infoPaint);
+        drawInfoText(canvas, infoSpeedBitmap, infoSpeed, 0f, y, centerX, lineHeight, infoPaint);
+        infoPaint.setColor(infoLineColor);
+        canvas.drawLine(centerX, y, centerX, y + lineHeight, infoPaint);
+        drawInfoText(canvas, infoAltitudeBitmap, infoAltitude, centerX, y, centerX, lineHeight, infoPaint);
       }
     }
     
     // draw cross
     canvas.save();
     canvas.translate(centerX, centerY);
-    canvas.drawCircle(0, 0, crossSize * 0.5f, crossPaint);
+    canvas.drawCircle(0, 0, crossSize, crossPaint);
     canvas.drawLine(-crossSize, 0, crossSize, 0, crossPaint);
     canvas.drawLine(0, -crossSize, 0, crossSize, crossPaint);
     canvas.restore();
   }
 
-  private void drawInfoText(Canvas canvas, Bitmap bitmap, String text, float height, float x, float y, Paint paint) {
+  private void drawInfoText(Canvas canvas, Bitmap bitmap, String text, float x, float y, float width, float height, Paint paint) {
 
     // draw bitmap
     canvas.save();
@@ -472,11 +475,11 @@ public class MapView extends View {
     
     // draw text
     paint.setColor(infoTextColor);
-    canvas.drawText(text, x + height, y - paint.ascent() + 0.5f * (height - paint.getFontSpacing()), paint);
+    canvas.drawText(text, x + height + paint.descent(), y - paint.ascent() + 0.5f * (height - paint.getFontSpacing()), paint);
     
     // draw line
     paint.setColor(infoLineColor);
-    canvas.drawLine(0f, y + height, screenSizeX, y + height, paint);
+    canvas.drawLine(x, y + height, x + width, y + height, paint);
   }
   
   private void updateTilesMinMax() {
@@ -545,7 +548,8 @@ public class MapView extends View {
 
     lastGpsLocation = location;
     
-    gpsSpeed = lastGpsLocation.hasSpeed() ? String.format("%.1f km/h", lastGpsLocation.getSpeed() * 3.6f) : "- km/h";
+    infoSpeed = lastGpsLocation.hasSpeed() ? String.format("%.1f km/h", lastGpsLocation.getSpeed() * 3.6f) : "- km/h";
+    infoAltitude  = lastGpsLocation.hasAltitude() ? String.format("%.0f müM", lastGpsLocation.getAltitude()) : "- km/h";
 
 
     // center map to gps position if we're tracking
@@ -578,7 +582,7 @@ public class MapView extends View {
     infoPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     infoPaint.setTextAlign(Paint.Align.LEFT);
     infoPaint.setTextSize(infoTextSize);
-    infoPaint.setStrokeWidth(0);
+    infoPaint.setStrokeWidth(infoLineStroke);
     
     textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     textPaint.setColor(0xFF000000);

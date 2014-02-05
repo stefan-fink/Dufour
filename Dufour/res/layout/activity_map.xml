@@ -13,10 +13,11 @@
         custom:infoTextColor="#FF404040"
         custom:infoLineColor="#FF000000"
         custom:infoBackColor="#90FFFFFF"
+        custom:infoLineStroke="1dp" 
         custom:textSize="24sp"
         custom:gridStroke="1dp" 
         custom:gridTextSize="10dp" 
-        custom:crossSize="25dp" 
-        custom:crossStroke="1dp" />
+        custom:crossSize="14dp" 
+        custom:crossStroke="1.3dp" />
     
 </LinearLayout>
