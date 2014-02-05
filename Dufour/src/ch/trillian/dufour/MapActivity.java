@@ -19,7 +19,7 @@ public class MapActivity extends Activity {
   private static final String KEY_SCALE = "scale";
   private static final String KEY_GPS_ENABLED = "gpsEnabled";
   private static final String KEY_GPS_TRACKING = "gpsTracking";
-  private static final String KEY_INFO_LEVEL = "infoLevel";
+  private static final String KEY_SHOW_INFO = "infoLevel";
   
   // constants for zooming in via volume up/down
   private static final float ZOOM_FACTOR = 1.3f;
@@ -33,8 +33,8 @@ public class MapActivity extends Activity {
   // true if GPS is enabled
   boolean gpsIsEnabled;
   
-  // level of information to show on view
-  int infoLevel;
+  // true if info is visible
+  boolean showInfo;
   
   // our optionMenu
   private Menu optionMenu;
@@ -62,7 +62,7 @@ public class MapActivity extends Activity {
       gpsIsEnabled = savedInstanceState.getBoolean(KEY_GPS_ENABLED);
       mapView.setGpsLocation(startGps(gpsIsEnabled));
       mapView.setGpsTracking(savedInstanceState.getBoolean(KEY_GPS_TRACKING));
-      infoLevel = savedInstanceState.getInt(KEY_INFO_LEVEL);
+      setShowInfo(savedInstanceState.getBoolean(KEY_SHOW_INFO));
     }
   }
 
@@ -75,7 +75,7 @@ public class MapActivity extends Activity {
     outState.putFloat(KEY_SCALE, mapView.getScale());
     outState.putBoolean(KEY_GPS_ENABLED, gpsIsEnabled);
     outState.putBoolean(KEY_GPS_TRACKING, mapView.isGpsTracking());
-    outState.putInt(KEY_INFO_LEVEL, infoLevel);
+    outState.putBoolean(KEY_SHOW_INFO, showInfo);
   }
 
   @Override
@@ -108,7 +108,7 @@ public class MapActivity extends Activity {
     getMenuInflater().inflate(R.menu.map, menu);
     optionMenu = menu;
     setActionGpsIcon(gpsIsEnabled);
-    setActionInfoIcon(infoLevel);
+    setShowInfo(showInfo);
     return true;
   }
 
@@ -124,8 +124,8 @@ public class MapActivity extends Activity {
       return true;
 
     case R.id.action_info:
-      infoLevel = (infoLevel + 1) % 3;
-      setActionInfoIcon(infoLevel);
+      showInfo = !showInfo;
+      setShowInfo(showInfo);
       return true;
     }
     
@@ -255,14 +255,18 @@ public class MapActivity extends Activity {
     }
   }
 
-  private final void setActionInfoIcon(int infoLevel) {
+  private final void setShowInfo(boolean showInfo) {
+    
+    this.showInfo = showInfo;
     
     if (optionMenu != null) {
       MenuItem actionGps = optionMenu.findItem(R.id.action_info);
       if (actionGps != null) {
-        actionGps.setIcon(infoLevel > 0 ? R.drawable.ic_action_info_on : R.drawable.ic_action_info_off);
+        actionGps.setIcon(showInfo ? R.drawable.ic_action_info_on : R.drawable.ic_action_info_off);
       }
     }
+    
+    mapView.setShowInfo(showInfo);
   }
   
   private final void setActionGpsIcon(boolean start) {

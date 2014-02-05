@@ -1,6 +1,10 @@
 <resources>
 
     <declare-styleable name="MapView">
+        <attr name="infoTextSize" format="dimension" />
+        <attr name="infoTextColor" format="color"/>
+        <attr name="infoLineColor" format="color"/>
+        <attr name="infoBackColor" format="color"/>
         <attr name="textSize" format="dimension" />
         <attr name="gridStroke" format="dimension" />
         <attr name="gridTextSize" format="dimension" />

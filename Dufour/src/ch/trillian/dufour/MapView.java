@@ -1,8 +1,10 @@
 package ch.trillian.dufour;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.location.Location;
@@ -35,22 +37,28 @@ public class MapView extends View {
   private Layer layer;
   
   // attributes
+  private int infoTextSize;
+  private int infoTextColor;
+  private int infoLineColor;
+  private int infoBackColor;
   private int textSize;
   private int gridStroke;
   private int gridTextSize;
   private int crossSize;
   private int crossStroke;
 
-  private String labelText = "This is a label";
-  private Bitmap bitmap = null;
-
   // painters and paths
+  private Paint infoPaint;
   private Paint textPaint;
   private Paint gridLinePaint;
   private Paint gridTextPaint;
   private Paint crossPaint;
   private Paint tilePaint;
 
+  // bitmaps
+  private Bitmap positionBitmap;
+  private Bitmap gpsInfoBitmap;
+  
   // screen size in pixel
   private int screenSizeX;
   private int screenSizeY;
@@ -81,9 +89,13 @@ public class MapView extends View {
   ScaleGestureDetector mScaleGestureDetector;
   GestureDetector mGestureDetector;
 
-  // current location stuff
+  // GPS
   private Location lastGpsLocation;
   private boolean gpsIsTracking;
+  private String gpsSpeed;
+  
+  // true if info is displayed
+  private boolean showInfo;
 
   public MapView(Context context, AttributeSet attrs) {
 
@@ -92,6 +104,10 @@ public class MapView extends View {
     // get attributes
     TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.MapView, 0, 0);
     try {
+      infoTextSize = a.getDimensionPixelSize(R.styleable.MapView_infoTextSize, 20);
+      infoTextColor = a.getColor(R.styleable.MapView_infoTextColor, 0xFF000000);
+      infoLineColor = a.getColor(R.styleable.MapView_infoLineColor, 0xFF000000);
+      infoBackColor = a.getColor(R.styleable.MapView_infoBackColor, 0x80FFFFFF);
       textSize = a.getDimensionPixelSize(R.styleable.MapView_textSize, 10);
       gridStroke = a.getDimensionPixelSize(R.styleable.MapView_gridStroke, 1);
       gridTextSize = a.getDimensionPixelSize(R.styleable.MapView_gridTextSize, 10);
@@ -108,6 +124,10 @@ public class MapView extends View {
     // init painters
     initPainters();
 
+    // preload bitmaps
+    positionBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_action_gps_on);
+    gpsInfoBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_action_info_on);
+    
     // Create our ScaleGestureDetector
     mScaleGestureDetector = new ScaleGestureDetector(context, new ScaleListener());
     mGestureDetector = new GestureDetector(context, new GestureListener());
@@ -321,6 +341,7 @@ public class MapView extends View {
     return screen / scale - position;
   }
   
+  @SuppressLint("DefaultLocale")
   protected void onDraw(Canvas canvas) {
 
     super.onDraw(canvas);
@@ -329,10 +350,6 @@ public class MapView extends View {
     canvas.scale(scale, scale);
     canvas.translate(positionX, positionY);
 
-    if (bitmap != null) {
-      canvas.drawBitmap(bitmap, -256, 0, crossPaint);
-    }
-    
     // scale grid stroke size
     gridLinePaint.setStrokeWidth(gridStroke / scale);
 
@@ -381,16 +398,16 @@ public class MapView extends View {
     // TODO: order preload tiles here
     
     // draw grid coordinates
-    x = minX + incX / 2;
-    for(int i = minTileX; i <= maxTileX; i++) {
-      y = minY + incY / 2 + gridTextPaint.getTextSize() / 2;
-      for(int j = minTileY; j <= maxTileY; j++) {
-        String text = layer.hasTile(i, j) ? "(" + i + "," + j + ")" : "no data";
-        canvas.drawText(text, x, y, gridTextPaint);
-        y += incY;
+      x = minX + incX / 2;
+      for(int i = minTileX; i <= maxTileX; i++) {
+        y = minY + incY / 2 + gridTextPaint.getTextSize() / 2;
+        for(int j = minTileY; j <= maxTileY; j++) {
+          String text = layer.hasTile(i, j) ? "(" + i + "," + j + ")" : "no data";
+          canvas.drawText(text, x, y, gridTextPaint);
+          y += incY;
+        }
+        x += incX;
       }
-      x += incX;
-    }
     
     // draw gps position
     if (lastGpsLocation != null) {
@@ -410,15 +427,30 @@ public class MapView extends View {
     
     canvas.restore();
 
-    // draw coordinates
-    String[] displayCoordinates = layer.getDisplayCoordinates(screen2map(centerX, scale, positionX), screen2map(centerY, scale, positionY));
-    textPaint.setTextSize(textSize);
-    y = 0 - textPaint.ascent();
-    textPaint.setColor(0x90FFFFFF);
-    canvas.drawRect(0f,  0f, screenSizeX, textPaint.getTextSize() + textPaint.descent(), textPaint);
-    textPaint.setColor(0xFF000000);
-    canvas.drawText(String.format("%s @ %1.2f [%s, %s]", layer.getName(), scale, displayCoordinates[0], displayCoordinates[1]), 10, y, textPaint);
-   
+    // draw info
+    if (showInfo) {
+      
+      float lineHeight = infoPaint.getFontSpacing() * 1.3f;
+      
+      // draw background
+      x= 0f; 
+      y = 0f;
+      int lines = lastGpsLocation == null ? 1 : 2;
+      infoPaint.setColor(infoBackColor);
+      canvas.drawRect(x, y, screenSizeX, lines * lineHeight, infoPaint);
+     
+      // draw coordinates
+      String[] displayCoordinates = layer.getDisplayCoordinates(screen2map(centerX, scale, positionX), screen2map(centerY, scale, positionY));
+      String text = String.format("%s, %s (%1.2f@%s)", displayCoordinates[0], displayCoordinates[1], scale, layer.getName());
+      drawInfoText(canvas, positionBitmap, text, lineHeight, x, y, infoPaint);
+
+      // draw GPS details
+      if (lastGpsLocation != null) {
+        y += lineHeight;
+        drawInfoText(canvas, gpsInfoBitmap, gpsSpeed, lineHeight, x, y, infoPaint);
+      }
+    }
+    
     // draw cross
     canvas.save();
     canvas.translate(centerX, centerY);
@@ -428,6 +460,25 @@ public class MapView extends View {
     canvas.restore();
   }
 
+  private void drawInfoText(Canvas canvas, Bitmap bitmap, String text, float height, float x, float y, Paint paint) {
+
+    // draw bitmap
+    canvas.save();
+    paint.setColor(0xFF000000);
+    float bitmapScale = height / bitmap.getHeight();
+    canvas.scale(bitmapScale, bitmapScale);
+    canvas.drawBitmap(bitmap, x, y / bitmapScale, paint);
+    canvas.restore();
+    
+    // draw text
+    paint.setColor(infoTextColor);
+    canvas.drawText(text, x + height, y - paint.ascent() + 0.5f * (height - paint.getFontSpacing()), paint);
+    
+    // draw line
+    paint.setColor(infoLineColor);
+    canvas.drawLine(0f, y + height, screenSizeX, y + height, paint);
+  }
+  
   private void updateTilesMinMax() {
     
     // calculate new tile-region
@@ -452,23 +503,6 @@ public class MapView extends View {
     }
   }
   
-  public String getLabelText() {
-
-    return labelText;
-  }
-
-  public void setLabelText(String labelText) {
-
-    this.labelText = labelText;
-    invalidate();
-  }
-
-  public void setBitmap(Bitmap bitmap) {
-
-    this.bitmap = bitmap;
-    invalidate();
-  }
-
   public void setLocation(Location location) {
 
     if (location == null) {
@@ -510,6 +544,9 @@ public class MapView extends View {
     }
 
     lastGpsLocation = location;
+    
+    gpsSpeed = lastGpsLocation.hasSpeed() ? String.format("%.1f km/h", lastGpsLocation.getSpeed() * 3.6f) : "- km/h";
+
 
     // center map to gps position if we're tracking
     if (gpsIsTracking) {
@@ -538,6 +575,11 @@ public class MapView extends View {
   
   private void initPainters() {
 
+    infoPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    infoPaint.setTextAlign(Paint.Align.LEFT);
+    infoPaint.setTextSize(infoTextSize);
+    infoPaint.setStrokeWidth(0);
+    
     textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     textPaint.setColor(0xFF000000);
     textPaint.setStrokeWidth(1);
@@ -569,6 +611,18 @@ public class MapView extends View {
   public void setLayer(Layer layer) {
     
     this.layer = layer;
+    
+    invalidate();
+  }
+
+  public boolean isShowInfo() {
+  
+    return showInfo;
+  }
+  
+  public void setShowInfo(boolean showInfo) {
+    
+    this.showInfo = showInfo;
     
     invalidate();
   }
