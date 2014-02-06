@@ -419,6 +419,14 @@ public class MapView extends View {
       float[] mapPixel = new float[2]; 
       layer.locationToMapPixel(gpsLastLocation, mapPixel);
       canvas.translate(mapPixel[0], mapPixel[1]);
+      
+      if (gpsLastLocation.hasAccuracy()) {
+        float accuracySize = gpsLastLocation.getAccuracy() / layer.getMeterPerPixel();
+        crossPaint.setColor(0x60000000);
+        crossPaint.setStyle(Paint.Style.FILL);
+        canvas.drawCircle(0, 0, accuracySize, crossPaint);
+      }
+
       canvas.scale(1f/scale, 1f/scale);
       crossPaint.setColor(gpsTracking ? 0xFFFF0000 : 0xFF0000FF);
       crossPaint.setStyle(Paint.Style.FILL);
