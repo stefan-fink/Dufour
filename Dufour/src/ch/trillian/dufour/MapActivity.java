@@ -326,7 +326,7 @@ public class MapActivity extends Activity {
     public void onLocationChanged(Location location) {
 
       mapView.setGpsLocation(location);
-      mapView.setGpsStatus(false);
+      mapView.setGpsStatus(true);
     }
   };
   
