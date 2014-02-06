@@ -31,6 +31,10 @@ public class MapActivity extends Activity {
   private static final float ZOOM_FACTOR = 1.3f;
   private static final int ZOOM_REPEAT_SLOWDOWN = 3;
   
+  // constants for GPS updates
+  private static final int GPS_UPDATE_INTERVAL = 1000;
+  private static final int GPS_OUTDATE_INTERVAL = 10 * GPS_UPDATE_INTERVAL;
+  
   private final Map map = createMap();
   private MapView mapView;
   private TileCache tileCache;
@@ -289,7 +293,7 @@ public class MapActivity extends Activity {
     
     // start or stop listening to GPS updates
     if (enable) {
-      locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
+      locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPS_UPDATE_INTERVAL, 1, locationListener);
       location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
     } else {
       locationManager.removeUpdates(locationListener);
@@ -357,7 +361,7 @@ public class MapActivity extends Activity {
       // check if GPS location is out-dated
       Location gpsLastLocation = mapView.getGpsLocation();
       if (gpsLastLocation != null) {
-        if (System.currentTimeMillis() - gpsLastLocation.getTime() > 10000) {
+        if (System.currentTimeMillis() - gpsLastLocation.getTime() > GPS_OUTDATE_INTERVAL) {
           mapView.setGpsStatus(false);
         }
       }

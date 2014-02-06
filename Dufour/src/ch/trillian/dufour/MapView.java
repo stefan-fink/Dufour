@@ -458,7 +458,6 @@ public class MapView extends View {
       if (gpsLastLocation != null) {
         y += lineHeight;
         int textColor = gpsStatus ? infoTextColor : infoTextAltColor;
-        Log.w("TRILLIAN", String.format("color=%X", textColor));
         drawInfoText(canvas, infoSpeedBitmap, infoSpeed, 0f, y, centerX, lineHeight, textColor, infoPaint);
         infoPaint.setColor(infoLineColor);
         canvas.drawLine(centerX, y, centerX, y + lineHeight, infoPaint);
