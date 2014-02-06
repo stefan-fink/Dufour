@@ -11,6 +11,7 @@
         android:layout_height="match_parent"
         custom:infoTextSize="22sp"
         custom:infoTextColor="#FF404040"
+        custom:infoTextAltColor="#FF800000"
         custom:infoLineColor="#FF000000"
         custom:infoBackColor="#90FFFFFF"
         custom:infoLineStroke="1dp" 

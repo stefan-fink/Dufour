@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.location.Location;
+import android.location.LocationProvider;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -39,6 +40,7 @@ public class MapView extends View {
   // attributes
   private int infoTextSize;
   private int infoTextColor;
+  private int infoTextAltColor;
   private int infoLineColor;
   private int infoBackColor;
   private int infoLineStroke;
@@ -92,10 +94,12 @@ public class MapView extends View {
   GestureDetector mGestureDetector;
 
   // GPS
-  private Location lastGpsLocation;
-  private boolean gpsIsTracking;
-  private String infoSpeed;
-  private String infoAltitude;
+  private boolean gpsEnabled;
+  private boolean gpsTracking;
+  private Location gpsLastLocation;
+  private int gpsStatus;
+  private String infoSpeed = "?";
+  private String infoAltitude = "?";
   
   // true if info is displayed
   private boolean showInfo;
@@ -109,6 +113,7 @@ public class MapView extends View {
     try {
       infoTextSize = a.getDimensionPixelSize(R.styleable.MapView_infoTextSize, 20);
       infoTextColor = a.getColor(R.styleable.MapView_infoTextColor, 0xFF000000);
+      infoTextAltColor = a.getColor(R.styleable.MapView_infoTextAltColor, 0xFFFF0000);
       infoLineColor = a.getColor(R.styleable.MapView_infoLineColor, 0xFF000000);
       infoBackColor = a.getColor(R.styleable.MapView_infoBackColor, 0x80FFFFFF);
       infoLineStroke = a.getDimensionPixelSize(R.styleable.MapView_infoLineStroke, 1);
@@ -213,9 +218,9 @@ public class MapView extends View {
     public boolean onDoubleTap(MotionEvent e) {
 
       // reset viewport
-      if (lastGpsLocation != null) {
+      if (gpsLastLocation != null) {
         setGpsTracking(true);
-        setLocation(lastGpsLocation);
+        setLocation(gpsLastLocation);
       }
       
       return true;
@@ -285,11 +290,11 @@ public class MapView extends View {
         positionY += dy / scale;
 
         // disable gps tracking if we moved too far away from GPS location
-        if (lastGpsLocation != null && gpsIsTracking) {
+        if (gpsLastLocation != null && gpsTracking) {
           
           // calculate screen pixel coordinates of GPS location
           float[] mapPixel = new float[2];
-          layer.locationToMapPixel(lastGpsLocation, mapPixel);
+          layer.locationToMapPixel(gpsLastLocation, mapPixel);
           float deltaX = map2screen(mapPixel[0], scale, positionX) - centerX;
           float deltaY = map2screen(mapPixel[1], scale, positionY) - centerY;
           float deltaSquare = deltaX * deltaX + deltaY * deltaY;
@@ -409,13 +414,13 @@ public class MapView extends View {
       }
     
     // draw gps position
-    if (lastGpsLocation != null) {
+    if (gpsLastLocation != null) {
       canvas.save();
       float[] mapPixel = new float[2]; 
-      layer.locationToMapPixel(lastGpsLocation, mapPixel);
+      layer.locationToMapPixel(gpsLastLocation, mapPixel);
       canvas.translate(mapPixel[0], mapPixel[1]);
       canvas.scale(1f/scale, 1f/scale);
-      crossPaint.setColor(gpsIsTracking ? 0xFFFF0000 : 0xFF0000FF);
+      crossPaint.setColor(gpsTracking ? 0xFFFF0000 : 0xFF0000FF);
       crossPaint.setStyle(Paint.Style.FILL);
       canvas.drawCircle(0, 0, crossSize * 0.4f, crossPaint);
       crossPaint.setStyle(Paint.Style.STROKE);
@@ -433,22 +438,24 @@ public class MapView extends View {
       
       // draw background
       y = 0f;
-      int lines = lastGpsLocation == null ? 1 : 2;
+      int lines = gpsEnabled ? 2 : 1;
       infoPaint.setColor(infoBackColor);
       canvas.drawRect(0f, y, screenSizeX, lines * lineHeight, infoPaint);
      
       // draw coordinates
       String[] displayCoordinates = layer.getDisplayCoordinates(screen2map(centerX, scale, positionX), screen2map(centerY, scale, positionY));
       String text = String.format("%s, %s (%1.2f@%s)", displayCoordinates[0], displayCoordinates[1], scale, layer.getName());
-      drawInfoText(canvas, infoLocationBitmap, text, 0f, y, screenSizeX, lineHeight, infoPaint);
+      drawInfoText(canvas, infoLocationBitmap, text, 0f, y, screenSizeX, lineHeight, infoTextColor, infoPaint);
 
       // draw GPS details
-      if (lastGpsLocation != null) {
+      if (gpsLastLocation != null) {
         y += lineHeight;
-        drawInfoText(canvas, infoSpeedBitmap, infoSpeed, 0f, y, centerX, lineHeight, infoPaint);
+        int textColor = gpsStatus == LocationProvider.AVAILABLE ? infoTextColor : infoTextAltColor;
+        Log.w("TRILLIAN", String.format("color=%X", textColor));
+        drawInfoText(canvas, infoSpeedBitmap, infoSpeed + " s=" + gpsStatus, 0f, y, centerX, lineHeight, textColor, infoPaint);
         infoPaint.setColor(infoLineColor);
         canvas.drawLine(centerX, y, centerX, y + lineHeight, infoPaint);
-        drawInfoText(canvas, infoAltitudeBitmap, infoAltitude, centerX, y, centerX, lineHeight, infoPaint);
+        drawInfoText(canvas, infoAltitudeBitmap, infoAltitude, centerX, y, centerX, lineHeight, textColor, infoPaint);
       }
     }
     
@@ -461,7 +468,7 @@ public class MapView extends View {
     canvas.restore();
   }
 
-  private void drawInfoText(Canvas canvas, Bitmap bitmap, String text, float x, float y, float width, float height, Paint paint) {
+  private void drawInfoText(Canvas canvas, Bitmap bitmap, String text, float x, float y, float width, float height, int textColor, Paint paint) {
 
     // draw bitmap
     canvas.save();
@@ -472,7 +479,7 @@ public class MapView extends View {
     canvas.restore();
     
     // draw text
-    paint.setColor(infoTextColor);
+    paint.setColor(textColor);
     canvas.drawText(text, x + height + paint.descent(), y - paint.ascent() + 0.5f * (height - paint.getFontSpacing()), paint);
     
     // draw line
@@ -536,37 +543,47 @@ public class MapView extends View {
 
   public void setGpsLocation(Location location) {
 
-    Log.w("TRILLIAN", "setGpsLocation() trackGps=" + gpsIsTracking);
+    Log.w("TRILLIAN", "setGpsLocation() trackGps=" + gpsTracking);
     
     if (location == null) {
-      lastGpsLocation = null;
+      gpsLastLocation = null;
       invalidate();
       return;
     }
 
-    lastGpsLocation = location;
+    gpsLastLocation = location;
     
     double[] ch1903 = Ch1903.wgs84toCh1903(location);
     
-    infoSpeed = lastGpsLocation.hasSpeed() ? String.format("%.1f km/h", lastGpsLocation.getSpeed() * 3.6f) : "- km/h";
-    infoAltitude  = lastGpsLocation.hasAltitude() ? String.format("%.0f m", ch1903[2]) : "- km/h";
+    infoSpeed = gpsLastLocation.hasSpeed() ? String.format("%.1f km/h", gpsLastLocation.getSpeed() * 3.6f) : "- km/h";
+    infoAltitude  = gpsLastLocation.hasAltitude() ? String.format("%.0f m", ch1903[2]) : "- km/h";
 
 
     // center map to gps position if we're tracking
-    if (gpsIsTracking) {
-      setLocation(lastGpsLocation);
+    if (gpsTracking) {
+      setLocation(gpsLastLocation);
     }
 
     invalidate();
   }
 
-  public void setGpsTracking(boolean track) {
+  public void setGpsEnabled(boolean enable) {
     
-    gpsIsTracking = track;
+    gpsEnabled = enable;
+  }
+  
+  public boolean isGpsEnabled() {
+    
+    return gpsEnabled;
+  }
+  
+  public void setGpsTracking(boolean tracking) {
+    
+    gpsTracking = tracking;
 
     // center map to gps position if we're tracking
-    if (track) {
-      setLocation(lastGpsLocation);
+    if (tracking) {
+      setLocation(gpsLastLocation);
     }
 
     invalidate();
@@ -574,7 +591,13 @@ public class MapView extends View {
   
   public boolean isGpsTracking() {
     
-    return gpsIsTracking;
+    return gpsTracking;
+  }
+  
+  public void setGpsStatus(int gpsStatus) {
+    
+    this.gpsStatus = gpsStatus;
+    invalidate();
   }
   
   private void initPainters() {

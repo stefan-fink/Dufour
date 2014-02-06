@@ -3,6 +3,7 @@
     <declare-styleable name="MapView">
         <attr name="infoTextSize" format="dimension" />
         <attr name="infoTextColor" format="color"/>
+        <attr name="infoTextAltColor" format="color"/>
         <attr name="infoLineColor" format="color"/>
         <attr name="infoBackColor" format="color"/>
         <attr name="infoLineStroke" format="dimension" />
