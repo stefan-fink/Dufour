@@ -396,8 +396,6 @@ public class MapView extends View {
       x += incX;
     }
     
-    // TODO: order preload tiles here
-    
     // draw grid coordinates
       x = minX + incX / 2;
       for(int i = minTileX; i <= maxTileX; i++) {
@@ -548,8 +546,10 @@ public class MapView extends View {
 
     lastGpsLocation = location;
     
+    double[] ch1903 = Ch1903.wgs84toCh1903(location);
+    
     infoSpeed = lastGpsLocation.hasSpeed() ? String.format("%.1f km/h", lastGpsLocation.getSpeed() * 3.6f) : "- km/h";
-    infoAltitude  = lastGpsLocation.hasAltitude() ? String.format("%.0f müM", lastGpsLocation.getAltitude()) : "- km/h";
+    infoAltitude  = lastGpsLocation.hasAltitude() ? String.format("%.0f m", ch1903[2]) : "- km/h";
 
 
     // center map to gps position if we're tracking
