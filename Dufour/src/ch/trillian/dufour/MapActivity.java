@@ -1,11 +1,17 @@
 package ch.trillian.dufour;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -83,6 +89,8 @@ public class MapActivity extends Activity {
 
     Log.w("TRILLIAN", "onPause()");
 
+    stopTimer();
+
     gpsWasEnabled = mapView.isGpsEnabled();
     gpsWasTracking = mapView.isGpsTracking();
     setGpsEnabled(false);
@@ -97,6 +105,8 @@ public class MapActivity extends Activity {
     
     super.onResume();
 
+    startTimer();
+    
     setGpsEnabled(gpsWasEnabled);
     setGpsTracking(gpsWasTracking);
   }
@@ -295,14 +305,13 @@ public class MapActivity extends Activity {
     
     mapView.setGpsEnabled(enable);
     mapView.setGpsLocation(location);
+    mapView.setGpsStatus(false);
   }
   
   private final LocationListener locationListener = new LocationListener() {
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
-      Log.w("TRILLIAN", "onStatusChanged provider=" + provider + ", status=" + status);
-      mapView.setGpsStatus(status);
     }
 
     @Override
@@ -317,6 +326,41 @@ public class MapActivity extends Activity {
     public void onLocationChanged(Location location) {
 
       mapView.setGpsLocation(location);
+      mapView.setGpsStatus(false);
+    }
+  };
+  
+  private Timer timer;
+  
+  private final void startTimer() {
+    
+    timer = new Timer();
+    timer.scheduleAtFixedRate(new TimerTask() {
+      
+      @Override
+      public void run() {
+        timerHandler.obtainMessage(1).sendToTarget();
+      }
+    }, 0, 1000);
+
+  }
+  
+  private final void stopTimer() {
+    
+    timer.cancel();
+  }
+  
+  @SuppressLint("HandlerLeak")
+  public Handler timerHandler = new Handler() {
+    public void handleMessage(Message message) {
+        
+      // check if GPS location is out-dated
+      Location gpsLastLocation = mapView.getGpsLocation();
+      if (gpsLastLocation != null) {
+        if (System.currentTimeMillis() - gpsLastLocation.getTime() > 10000) {
+          mapView.setGpsStatus(false);
+        }
+      }
     }
   };
 }

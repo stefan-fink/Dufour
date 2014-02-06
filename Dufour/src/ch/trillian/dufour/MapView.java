@@ -8,7 +8,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.location.Location;
-import android.location.LocationProvider;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -96,8 +95,8 @@ public class MapView extends View {
   // GPS
   private boolean gpsEnabled;
   private boolean gpsTracking;
+  private boolean gpsStatus;
   private Location gpsLastLocation;
-  private int gpsStatus;
   private String infoSpeed = "?";
   private String infoAltitude = "?";
   
@@ -458,9 +457,9 @@ public class MapView extends View {
       // draw GPS details
       if (gpsLastLocation != null) {
         y += lineHeight;
-        int textColor = gpsStatus == LocationProvider.AVAILABLE ? infoTextColor : infoTextAltColor;
+        int textColor = gpsStatus ? infoTextColor : infoTextAltColor;
         Log.w("TRILLIAN", String.format("color=%X", textColor));
-        drawInfoText(canvas, infoSpeedBitmap, infoSpeed + " s=" + gpsStatus, 0f, y, centerX, lineHeight, textColor, infoPaint);
+        drawInfoText(canvas, infoSpeedBitmap, infoSpeed, 0f, y, centerX, lineHeight, textColor, infoPaint);
         infoPaint.setColor(infoLineColor);
         canvas.drawLine(centerX, y, centerX, y + lineHeight, infoPaint);
         drawInfoText(canvas, infoAltitudeBitmap, infoAltitude, centerX, y, centerX, lineHeight, textColor, infoPaint);
@@ -549,6 +548,11 @@ public class MapView extends View {
     return location;
   }
 
+  public Location getGpsLocation() {
+  
+    return gpsLastLocation;
+  }
+  
   public void setGpsLocation(Location location) {
 
     Log.w("TRILLIAN", "setGpsLocation() trackGps=" + gpsTracking);
@@ -602,7 +606,7 @@ public class MapView extends View {
     return gpsTracking;
   }
   
-  public void setGpsStatus(int gpsStatus) {
+  public void setGpsStatus(boolean gpsStatus) {
     
     this.gpsStatus = gpsStatus;
     invalidate();
