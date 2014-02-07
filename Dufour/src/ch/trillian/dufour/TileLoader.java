@@ -10,7 +10,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 
 public class TileLoader {
@@ -22,105 +21,216 @@ public class TileLoader {
   MapDatabaseHelper databaseHelper;
   LoadListener loadListener;
   Handler handler;
-  ArrayDeque<Tile> mainDequeue;
-  ArrayDeque<Tile> urlDequeue;
+  ArrayDeque<Tile> databaseDequeue;
+  ArrayDeque<Tile> downloadDequeue;
 
-  Thread mainThread;
-  Thread downloadThread;
+  DatabaseThread databaseThread;
+  DownloadThread downloadThread;
+  
+  boolean stopping;
 
   public interface LoadListener {
 
     public void onLoadFinished(Tile tile);
   }
 
-  public TileLoader(Context context, Handler handler) {
-
-    this.handler = handler;
+  public TileLoader(Context context) {
 
     databaseHelper = new MapDatabaseHelper(context);
-    mainDequeue = new ArrayDeque<Tile>();
-    urlDequeue = new ArrayDeque<Tile>();
 
     Log.w("TRILLIAN", "TILES count=" + databaseHelper.getTileCount());
   }
 
+  public void start(Handler handler) {
+    
+    this.handler = handler;
+
+    databaseDequeue = new ArrayDeque<Tile>();
+    downloadDequeue = new ArrayDeque<Tile>();
+  }
+  
+  public void stop() {
+
+    stopping = true;
+    
+    if (databaseThread != null) {
+      databaseThread.shutdown();
+      databaseThread = null;
+    }
+    
+    if (downloadThread != null) {
+      downloadThread.shutdown();
+      downloadThread = null;
+    }
+    
+    databaseDequeue = null;
+    downloadDequeue = null;
+  }
+  
   public void setLoadListener(LoadListener loadListener) {
 
     this.loadListener = loadListener;
   }
 
-  public void testHandler() {
-
-    Thread testThread = new Thread(new Runnable() {
-
-      @Override
-      public void run() {
-
-        try {
-          Thread.sleep(3000);
-        } catch (Exception e) {
-          Log.w("TRILLIAN", e.toString());
-        }
-
-        Message message = handler.obtainMessage(1234);
-        message.sendToTarget();
-      }
-    });
-
-    testThread.start();
-  }
-
   public void orderLoadTile(Tile tile) {
 
-    synchronized (mainDequeue) {
+    synchronized (databaseDequeue) {
 
-      mainDequeue.offer(tile);
+      // put tile in order queue
+      databaseDequeue.offer(tile);
 
-      if (mainThread == null) {
-        startMainThread();
+      // (re)start thread
+      if (databaseThread == null) {
+        databaseThread = new DatabaseThread();
+        databaseThread.start();
+      }
+      
+      if (databaseDequeue.size() == 1) {
+        databaseDequeue.notify();
       }
     }
   }
 
   public void cancelLoadTile(Tile tile) {
 
-    synchronized (mainDequeue) {
-      mainDequeue.remove(tile);
+    synchronized (databaseDequeue) {
+      databaseDequeue.remove(tile);
+    }
+    
+    synchronized (downloadDequeue) {
+      downloadDequeue.remove(tile);
     }
   }
 
-  private void startMainThread() {
+  private class DatabaseThread extends Thread {
+  
+    private boolean shutdown;
+    
+    public void shutdown() {
+      
+      shutdown = true;
+      synchronized (databaseDequeue) {
+        databaseDequeue.notify();
+      }
+    }
+    
+    public void run() {
 
-    mainThread = new Thread(new Runnable() {
+      Log.w("TRILLIAN", "DatabaseThread started.");
 
-      @Override
-      public void run() {
-
+      int numTiles = 0;
+      
+      try {
+        
         while (true) {
-
+  
+          if (shutdown) {
+            Log.w("TRILLIAN", "DatabaseThread has been shut down.");
+            return;
+          }
+          
           Tile tile = null;
-
-          synchronized (mainDequeue) {
-            if ((tile = mainDequeue.poll()) == null) {
-              mainThread = null;
-              Log.w("TRILLIAN", "MainThread stopped.");
-              break;
+  
+          synchronized (databaseDequeue) {
+            if ((tile = databaseDequeue.poll()) == null) {
+              Log.w("TRILLIAN", "DatabaseThread going to sleep (loaded " + numTiles + " tiles).");
+              databaseDequeue.wait();
+              Log.w("TRILLIAN", "DatabaseThread woke up.");
+              numTiles = 0;
+              continue;
             }
           }
-
+  
           if (getTileFromDatabase(tile)) {
+            numTiles++;
             continue;
           }
-
-          getTileFromUrl(tile);
+  
+          // order tile from download thread
+          orderDownloadTile(tile);
+        }
+        
+      } catch (InterruptedException e) {
+        synchronized (databaseDequeue) {
+          Log.w("TRILLIAN", "DatabaseThread has been interrupted.");
+          databaseThread = null;
         }
       }
-    });
+    }
+  }
+  
+  private void orderDownloadTile(Tile tile) {
 
-    mainThread.start();
-    Log.w("TRILLIAN", "MainThread started.");
+    synchronized (downloadDequeue) {
+
+      // put tile in order queue
+      downloadDequeue.offer(tile);
+
+      // (re)start thread
+      if (downloadThread == null) {
+        downloadThread = new DownloadThread();
+        downloadThread.start();
+      }
+      
+      if (downloadDequeue.size() == 1) {
+        downloadDequeue.notify();
+      }
+    }
   }
 
+  private class DownloadThread extends Thread {
+    
+    private boolean shutdown;
+    
+    public void shutdown() {
+      
+      shutdown = true;
+      synchronized (downloadDequeue) {
+        downloadDequeue.notify();
+      }
+    }
+    
+    public void run() {
+
+      Log.w("TRILLIAN", "DownloadThread started.");
+      
+      int numTiles = 0;
+
+      try {
+        
+        while (true) {
+  
+          if (shutdown) {
+            Log.w("TRILLIAN", "DownloadThread has been shut down.");
+            return;
+          }
+          
+          Tile tile = null;
+  
+          synchronized (downloadDequeue) {
+            if ((tile = downloadDequeue.poll()) == null) {
+              Log.w("TRILLIAN", "DownloadThread going to sleep (downloaded " + numTiles + " tiles).");
+              downloadDequeue.wait();
+              Log.w("TRILLIAN", "DownloadThread woke up.");
+              numTiles = 0;
+              continue;
+            }
+          }
+  
+          getTileFromUrl(tile);
+          
+          numTiles++;
+        }
+        
+      } catch (InterruptedException e) {
+        synchronized (downloadDequeue) {
+          Log.w("TRILLIAN", "DownloadThread has been interrupted.");
+          downloadThread = null;
+        }
+      }
+    }
+  }
+  
   private boolean getTileFromDatabase(Tile tile) {
 
     // read image from database

@@ -55,7 +55,7 @@ public class MapDatabaseHelper extends SQLiteOpenHelper {
   
   private static final String SQL_GET_TILE_IMAGE = "SELECT " + TileTable.COL_IMAGE + " FROM " + TileTable.TABLE_NAME + " WHERE " + TileTable.COL_MAP_ID + " = ? AND " + TileTable.COL_LAYER_ID + " = ? AND " + TileTable.COL_X + " = ? AND " + TileTable.COL_Y + "=?";
 
-  public byte[] getTileImage(Tile tile) {
+  public synchronized byte[] getTileImage(Tile tile) {
 
     SQLiteDatabase db = getReadableDatabase();
     
@@ -79,7 +79,7 @@ public class MapDatabaseHelper extends SQLiteOpenHelper {
 
   private static final String SQL_INSERT = "INSERT OR REPLACE INTO " + TileTable.TABLE_NAME + " (" + TileTable.COL_MAP_ID + "," + TileTable.COL_LAYER_ID + "," + TileTable.COL_X + "," + TileTable.COL_Y + "," + TileTable.COL_IMAGE + ") VALUES(?,?,?,?,?)";
 
-  public void insertOrReplaceTileBitmap(Tile tile, byte[] image) {
+  public synchronized void insertOrReplaceTileBitmap(Tile tile, byte[] image) {
     
     SQLiteDatabase db = getWritableDatabase();
 

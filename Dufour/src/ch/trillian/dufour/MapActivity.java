@@ -56,7 +56,7 @@ public class MapActivity extends Activity {
     super.onCreate(savedInstanceState);
 
     // initialize loader
-    tileLoader = new TileLoader(this, loaderHandler);
+    tileLoader = new TileLoader(this);
     tileLoader.setLoadListener(new LoadListener());
 
     // initialize view
@@ -99,6 +99,8 @@ public class MapActivity extends Activity {
     gpsWasTracking = mapView.isGpsTracking();
     setGpsEnabled(false);
 
+    tileLoader.stop();
+
     super.onPause();
   }
 
@@ -109,6 +111,8 @@ public class MapActivity extends Activity {
     
     super.onResume();
 
+    tileLoader.start(loaderHandler);
+    
     startTimer();
     
     setGpsEnabled(gpsWasEnabled);
@@ -138,7 +142,6 @@ public class MapActivity extends Activity {
 
     case R.id.action_info:
       setShowInfo(!showInfo);
-      tileLoader.testHandler();
       return true;
     }
     
@@ -375,9 +378,6 @@ public class MapActivity extends Activity {
     
     public void handleMessage(Message message) {
 
-      Log.w("TRILLIAN", "what=" + message.what);
-      mapView.setShowInfo(false);
-      
       if (message.obj instanceof Tile) {
         Tile tile = (Tile) message.obj;
         if (tile == null) {
