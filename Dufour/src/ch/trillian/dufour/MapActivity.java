@@ -56,7 +56,7 @@ public class MapActivity extends Activity {
     super.onCreate(savedInstanceState);
 
     // initialize loader
-    tileLoader = new TileLoader(this);
+    tileLoader = new TileLoader(this, loaderHandler);
     tileLoader.setLoadListener(new LoadListener());
 
     // initialize view
@@ -138,6 +138,7 @@ public class MapActivity extends Activity {
 
     case R.id.action_info:
       setShowInfo(!showInfo);
+      tileLoader.testHandler();
       return true;
     }
     
@@ -356,6 +357,7 @@ public class MapActivity extends Activity {
   
   @SuppressLint("HandlerLeak")
   public Handler timerHandler = new Handler() {
+    
     public void handleMessage(Message message) {
         
       // check if GPS location is out-dated
@@ -365,6 +367,29 @@ public class MapActivity extends Activity {
           mapView.setGpsStatus(false);
         }
       }
+    }
+  };
+  
+  @SuppressLint("HandlerLeak")
+  public Handler loaderHandler = new Handler() {
+    
+    public void handleMessage(Message message) {
+
+      Log.w("TRILLIAN", "what=" + message.what);
+      mapView.setShowInfo(false);
+      
+      if (message.obj instanceof Tile) {
+        Tile tile = (Tile) message.obj;
+        if (tile == null) {
+          Log.w("TRILLIAN", "tile: null");
+        } else if (tile.getBitmap() == null) {
+          Log.w("TRILLIAN", "tile.bitmap: null" + tile);
+        } else {
+          tileCache.setTile(tile);
+          mapView.invalidate();
+        }
+      }
+
     }
   };
 }
