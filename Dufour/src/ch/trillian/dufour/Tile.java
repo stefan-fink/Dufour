@@ -9,7 +9,9 @@ public class Tile {
   private final Layer layer; 
   private final int x;
   private final int y;
+  private long lastUsed;
   private Bitmap bitmap;
+  private int state;
   
   public Tile(Map map, Layer layer, int x, int y) {
     
@@ -56,5 +58,21 @@ public class Tile {
   
   public void setBitmap(Bitmap bitmap) {
     this.bitmap = bitmap;
+  }
+  
+  public long getLastUsed() {
+    return lastUsed;
+  }
+
+  public void setLastUsed(long lastUsed) {
+    this.lastUsed = lastUsed;
+  }
+
+  public int getState() {
+    return state;
+  }
+
+  public void setState(int state) {
+    this.state = state;
   }
 }

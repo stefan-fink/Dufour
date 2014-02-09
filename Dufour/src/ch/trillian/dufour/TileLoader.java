@@ -17,6 +17,7 @@ public class TileLoader {
   private static final int LOADED_FROM_DB = 1;
   private static final int LOADED_FROM_URL = 2;
   private static final int LOAD_FAILED = 3;
+  private static final int UPDATE_LAST_USED_THRESHOLD = 10 * 60 * 1000;
 
   MapDatabaseHelper databaseHelper;
   LoadListener loadListener;
@@ -37,8 +38,7 @@ public class TileLoader {
   public TileLoader(Context context) {
 
     databaseHelper = new MapDatabaseHelper(context);
-
-    Log.w("TRILLIAN", "TILES count=" + databaseHelper.getTileCount());
+    databaseHelper.open();
   }
 
   public void start(Handler handler) {
@@ -234,19 +234,18 @@ public class TileLoader {
   private boolean getTileFromDatabase(Tile tile) {
 
     // read image from database
-    byte[] image = databaseHelper.getTileImage(tile);
-    if (image == null) {
+    if (!databaseHelper.getTileImage(tile)) {
       return false;
     }
 
-    // decode image
-    Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
-    if (bitmap == null) {
-      return false;
+    long now = System.currentTimeMillis();
+    if (now - tile.getLastUsed() > UPDATE_LAST_USED_THRESHOLD) {
+      tile.setLastUsed(now);
+      databaseHelper.updateLastUsed(tile);
+      Log.w("TRILLIAN", "Updated last used=" + tile.toString());
     }
-
-    // set bitmap to tile
-    tile.setBitmap(bitmap);
+    
+    // notify GUI
     handler.obtainMessage(LOADED_FROM_DB, tile).sendToTarget();
 
     return true;
@@ -279,7 +278,9 @@ public class TileLoader {
       if (bitmap != null) {
         tile.setBitmap(bitmap);
         handler.obtainMessage(LOADED_FROM_URL, tile).sendToTarget();
+        Log.w("TRILLIAN", "hallo");
         databaseHelper.insertOrReplaceTileBitmap(tile, image);
+        // databaseHelper.insertOrReplaceTileBitmap(tile, image);
         return true;
       }
 

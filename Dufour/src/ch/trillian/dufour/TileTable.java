@@ -10,22 +10,27 @@ public class TileTable {
   public static final String COL_LAYER_ID = "LAYER_ID";
   public static final String COL_X = "X";
   public static final String COL_Y = "Y";
+  public static final String COL_LAST_USED = "LAST_USED";
   public static final String COL_IMAGE = "IMAGE";
 
-  private static final String DATABASE_CREATE = "CREATE TABLE " 
+  private static final String SQL_CREATE_TABLE = "CREATE TABLE " 
       + TABLE_NAME
       + "(" 
       + COL_MAP_ID + " TEXT NOT NULL, " 
       + COL_LAYER_ID + " TEXT NOT NULL, " 
       + COL_X + " INTEGER NOT NULL, " 
       + COL_Y + " INTEGER NOT NULL, " 
-      + COL_IMAGE + " BLOB NOT NULL,"
+      + COL_LAST_USED + " INTEGER NOT NULL, " 
+      + COL_IMAGE + " BLOB NOT NULL, "
       + "PRIMARY KEY (" + COL_MAP_ID + ", " + COL_LAYER_ID + ", " + COL_X + ", " + COL_Y + ")"
       + ");";
 
+  private static final String SQL_CREATE_INDEX = "CREATE INDEX " + TABLE_NAME + "_" + COL_LAST_USED +"_INDEX ON " + TABLE_NAME + "(" + COL_LAST_USED + ")";
+
   public static void onCreate(SQLiteDatabase database) {
     
-    database.execSQL(DATABASE_CREATE);
+    database.execSQL(SQL_CREATE_TABLE);
+    database.execSQL(SQL_CREATE_INDEX);
   }
 
   public static void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
