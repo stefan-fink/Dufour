@@ -4,6 +4,8 @@ import android.util.Log;
 
 public class TileCache {
 
+  private static final String TAG = "CACHE";
+
   public final static int PRELOAD_SIZE = 1;
 
   private Map map;
@@ -27,8 +29,8 @@ public class TileCache {
     for (int layerIndex = 0; layerIndex < map.getLayerCount(); layerIndex++) {
 
       Layer layer = map.getLayer(layerIndex);
-      int cacheSizeX = (int) ((1f / layer.getMinScale()) * screenSizeX / layer.getTileSizeX()) + 2 * preloadSize + 1;
-      int cacheSizeY = (int) ((1f / layer.getMinScale()) * screenSizeY / layer.getTileSizeY()) + 2 * preloadSize + 1;
+      int cacheSizeX = (int) ((1f / layer.getMinScale()) * screenSizeX / layer.getTileSizeX()) + 2 * preloadSize + 2;
+      int cacheSizeY = (int) ((1f / layer.getMinScale()) * screenSizeY / layer.getTileSizeY()) + 2 * preloadSize + 2;
 
       cacheSizeX = Math.min(cacheSizeX, layer.getSizeX());
       cacheSizeY = Math.min(cacheSizeY, layer.getSizeY());
@@ -92,6 +94,8 @@ public class TileCache {
 
   public void preloadRegion(Layer layer, int minTileX, int maxTileX, int minTileY, int maxTileY) {
 
+    Log.i(TAG, String.format("Preloading layer=%s, minTileX=%d, maxTileX=%d, minTileY=%d, maxTileY=%d " , layer.getName(), minTileX, maxTileX, minTileY, maxTileY));
+    
     int layerIndex = layer.getIndex();
 
     // cancel load for all other layers or for tiles that don't fit the region of the current layer
@@ -139,35 +143,6 @@ public class TileCache {
     }
   }
 
-  public void setTile(Tile tile) {
-
-    //    if (map != tile.getMap()) {
-    //      return;
-    //    }
-    //
-    //    int x = tile.getX();
-    //    int y = tile.getY();
-    //
-    //    if (!tile.getLayer().hasTile(x, y)) {
-    //      return;
-    //    }
-    //
-    //    int layerIndex = tile.getLayer().getIndex();
-    //    int cacheSizeX = cache[layerIndex][0].length;
-    //    int cacheSizeY = cache[layerIndex].length;
-    //
-    //    int cacheIndexX = x % cacheSizeX;
-    //    int cacheIndexY = y % cacheSizeY;
-    //
-    //    Tile currentTile = cache[layerIndex][cacheIndexY][cacheIndexX];
-    //
-    //    if (currentTile != null && currentTile.isLoading()) {
-    //      cancelLoad(tile);
-    //    }
-    //
-    //    cache[layerIndex][cacheIndexY][cacheIndexX] = tile;
-  }
-
   private void orderLoad(Tile tile) {
 
     if (cacheListener != null) {
@@ -176,7 +151,7 @@ public class TileCache {
   }
 
   private void cancelLoad(Tile tile) {
-
+    
     if (cacheListener != null) {
       cacheListener.onCancelLoadTile(tile);
     }
