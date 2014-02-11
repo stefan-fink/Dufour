@@ -63,6 +63,7 @@ public class MapActivity extends Activity {
     setContentView(R.layout.activity_map);
     mapView = (MapView) findViewById(R.id.map_view);
     mapView.setLayer(map.getLayer(0));
+    mapView.setLocation(((LocationManager) getSystemService(Context.LOCATION_SERVICE)).getLastKnownLocation(LocationManager.GPS_PROVIDER));
     mapView.setViewListener(new MapViewListener());
     
     // retrieve state

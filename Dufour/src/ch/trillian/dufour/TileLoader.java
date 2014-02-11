@@ -58,6 +58,8 @@ public class TileLoader {
         LoadListener listener = tileLoader.loadListener;
         if (listener != null) {
           listener.onLoadFinished((Tile) message.obj);
+        } else {
+          Log.w(TAG, "LoadListener is null");
         }
       }
     }
