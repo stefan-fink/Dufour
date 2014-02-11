@@ -2,6 +2,7 @@ package ch.trillian.dufour;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayDeque;
@@ -10,10 +11,13 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 
 public class TileLoader {
 
+  private static final String TAG = "LOADER";
+  
   private static final int LOADED_FROM_DB = 1;
   private static final int LOADED_FROM_URL = 2;
   private static final int LOAD_FAILED = 3;
@@ -27,8 +31,8 @@ public class TileLoader {
   // the number of tiles to delete from DB at once
   private static int DELETE_CHUNK_SIZE = 10;
   
-  LoadListener loadListener;
-  Handler handler;
+  private LoadListener loadListener;
+  private Handler handler;
 
   private DatabaseLoader databaseLoader = new DatabaseLoader();
   private UrlLoader urlLoader = new UrlLoader();
@@ -38,17 +42,35 @@ public class TileLoader {
     public void onLoadFinished(Tile tile);
   }
   
+  private static class LoaderHandler extends Handler {
+    
+    private final WeakReference<TileLoader> tileLoaderRef; 
+
+    public LoaderHandler(TileLoader tileLoader) {
+      
+      tileLoaderRef = new WeakReference<TileLoader>(tileLoader);
+    }
+    
+    public void handleMessage(Message message) {
+
+      TileLoader tileLoader = tileLoaderRef.get();
+      if (tileLoader != null) {
+        LoadListener listener = tileLoader.loadListener;
+        if (listener != null) {
+          listener.onLoadFinished((Tile) message.obj);
+        }
+      }
+    }
+  };
+
   public TileLoader(Context context) {
     
     MapDatabase.newInstance(context);
+    
+    handler = new LoaderHandler(this);
   }
 
-  public void start(Handler handler) {
-    
-    this.handler = handler;
-  }
-  
-  public void stop() {
+  public void stopThreads() {
 
     databaseLoader.shutdown();
     urlLoader.shutdown();
@@ -112,7 +134,7 @@ public class TileLoader {
 
     public void run() {
 
-      Log.w("TRILLIAN", "DatabaseThread started.");
+      Log.i(TAG, "DatabaseThread started.");
 
       MapDatabase database = MapDatabase.getInstance();
       int numTiles = 0;
@@ -131,9 +153,9 @@ public class TileLoader {
   
           synchronized (queue) {
             if ((tile = queue.poll()) == null) {
-              Log.w("TRILLIAN", "DatabaseThread going to sleep (loaded " + numTiles + " tiles).");
+              Log.i(TAG, "DatabaseThread going to sleep (loaded " + numTiles + " tiles).");
               queue.wait();
-              Log.w("TRILLIAN", "DatabaseThread woke up.");
+              Log.i(TAG, "DatabaseThread woke up.");
               numTiles = 0;
               continue;
             }
@@ -149,15 +171,16 @@ public class TileLoader {
         }
         
       } catch (InterruptedException e) {
-        synchronized (queue) {
-          Log.w("TRILLIAN", "DatabaseThread has been interrupted.");
-        }
+        Log.w(TAG, "DatabaseThread has been interrupted.");
       }
       
       database.closeDatabase();
-      shutdown = false;
-      thread = null;
-      Log.w("TRILLIAN", "DatabaseThread has been shut down.");
+      synchronized (queue) {
+        shutdown = false;
+        queue.clear();
+        thread = null;
+      }
+      Log.i(TAG, "DatabaseThread has been shut down.");
     }
     
     private boolean getTileFromDatabase(MapDatabase database, Tile tile) {
@@ -223,7 +246,7 @@ public class TileLoader {
     
     public void run() {
 
-      Log.w("TRILLIAN", "DownloadThread started.");
+      Log.i(TAG, "DownloadThread started.");
       
       MapDatabase database = MapDatabase.getInstance();
       int numTiles = 0;
@@ -242,9 +265,9 @@ public class TileLoader {
   
           synchronized (queue) {
             if ((tile = queue.poll()) == null) {
-              Log.w("TRILLIAN", "DownloadThread going to sleep (downloaded " + numTiles + " tiles).");
+              Log.i(TAG, "DownloadThread going to sleep (downloaded " + numTiles + " tiles).");
               queue.wait();
-              Log.w("TRILLIAN", "DownloadThread woke up.");
+              Log.i(TAG, "DownloadThread woke up.");
               numTiles = 0;
               continue;
             }
@@ -256,16 +279,16 @@ public class TileLoader {
         }
         
       } catch (InterruptedException e) {
-        synchronized (queue) {
-          Log.w("TRILLIAN", "DownloadThread has been interrupted.");
-          
-        }
+        Log.w(TAG, "DownloadThread has been interrupted.");
       }
       
       database.closeDatabase();
-      shutdown = false;
-      thread = null;
-      Log.w("TRILLIAN", "DownloadThread has been shut down.");
+      synchronized (queue) {
+        shutdown = false;
+        queue.clear();
+        thread = null;
+      }
+      Log.i(TAG, "DownloadThread has been shut down.");
     }
     
     private boolean getTileFromUrl(MapDatabase database, Tile tile) {
@@ -304,7 +327,7 @@ public class TileLoader {
         }
 
       } catch (Exception e) {
-        Log.w("TRILLIAN", "Exception: " + e.getMessage(), e);
+        Log.w(TAG, "Exception: " + e.getMessage(), e);
         handler.obtainMessage(LOAD_FAILED, tile).sendToTarget();
       }
 

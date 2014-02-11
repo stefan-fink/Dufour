@@ -11,6 +11,8 @@ import android.util.Log;
 
 public class MapDatabase extends SQLiteOpenHelper {
 
+  private static final String TAG = "DATABASE";
+
   private static final String DATABASE_NAME = "map.db";
   private static final int DATABASE_VERSION = 1;
 
@@ -64,12 +66,12 @@ public class MapDatabase extends SQLiteOpenHelper {
     if (openCount == 0) {
       db = getWritableDatabase();
       tileCount = readTileCount();
-      Log.w("Database", String.format("Opened (tileCount=%d)", tileCount));
+      Log.i(TAG, String.format("Opened (tileCount=%d)", tileCount));
     }
 
     openCount++;
     
-    Log.w("Database", String.format("Opened in %d ms (openCount=%d)", (System.currentTimeMillis() - start), openCount));
+    Log.i(TAG, String.format("Opened in %d ms (openCount=%d)", (System.currentTimeMillis() - start), openCount));
   }
 
   public synchronized void closeDatabase() {
@@ -83,7 +85,7 @@ public class MapDatabase extends SQLiteOpenHelper {
       db = null;
     }
 
-    Log.w("Database", String.format("Closed in %d ms (openCount=%d)", (System.currentTimeMillis() - start), openCount));
+    Log.i(TAG, String.format("Closed in %d ms (openCount=%d)", (System.currentTimeMillis() - start), openCount));
   }
 
   public int getTileCount() {
@@ -169,7 +171,7 @@ public class MapDatabase extends SQLiteOpenHelper {
     updateLastUsedStatement.bindLong(4, tile.getY());
     updateLastUsedStatement.executeUpdateDelete();
     
-    Log.w("Database", String.format("Updated last-used in %d ms", (System.currentTimeMillis() - start)));
+    Log.i(TAG, String.format("Updated last-used in %d ms", (System.currentTimeMillis() - start)));
   }
   
   private static final String SQL_UPDATE_BITMAP = "UPDATE " + TileTable.TABLE_NAME + " SET " + TileTable.COL_LAST_USED + "=?," + TileTable.COL_IMAGE + "=? WHERE " + TileTable.COL_LAYER_ID + " = ? AND " + TileTable.COL_X + " = ? AND " + TileTable.COL_Y + "=?";
@@ -187,7 +189,7 @@ public class MapDatabase extends SQLiteOpenHelper {
     statement.bindLong(5, tile.getY());
     statement.executeUpdateDelete();
 
-    Log.w("Database", String.format("Updated bitmap in %d ms", (System.currentTimeMillis() - start)));
+    Log.i(TAG, String.format("Updated bitmap in %d ms", (System.currentTimeMillis() - start)));
   }
   
   private static final String SQL_INSERT_TILE = "INSERT INTO " + TileTable.TABLE_NAME + " (" + TileTable.COL_LAYER_ID + "," + TileTable.COL_X + "," + TileTable.COL_Y + "," + TileTable.COL_LAST_USED + "," + TileTable.COL_IMAGE + ") VALUES(?,?,?,?,?)";
@@ -207,7 +209,7 @@ public class MapDatabase extends SQLiteOpenHelper {
       tileCount++;
     }
     
-    Log.w("Database", String.format("Inserted row in %d ms (tileCount=%d)", (System.currentTimeMillis() - start), tileCount));
+    Log.i(TAG, String.format("Inserted row in %d ms (tileCount=%d)", (System.currentTimeMillis() - start), tileCount));
   }
   
   private static final String SQL_DELETE_LEAST_RECENTLY_USED = "DELETE FROM " + TileTable.TABLE_NAME + " WHERE ROWID IN (SELECT ROWID FROM " + TileTable.TABLE_NAME + " ORDER BY " + TileTable.COL_LAST_USED + " ASC LIMIT ?)";
@@ -224,6 +226,6 @@ public class MapDatabase extends SQLiteOpenHelper {
       tileCount -= rowsDeleted;
     }
 
-    Log.w("Database", String.format("Deleted %d rows in %d ms (tileCount=%d)", rowsDeleted, (System.currentTimeMillis() - start), tileCount));
+    Log.i(TAG, String.format("Deleted %d rows in %d ms (tileCount=%d)", rowsDeleted, (System.currentTimeMillis() - start), tileCount));
   }
 }

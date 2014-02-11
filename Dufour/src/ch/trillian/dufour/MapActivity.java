@@ -99,7 +99,7 @@ public class MapActivity extends Activity {
     gpsWasTracking = mapView.isGpsTracking();
     setGpsEnabled(false);
 
-    tileLoader.stop();
+    tileLoader.stopThreads();
 
     super.onPause();
   }
@@ -111,8 +111,6 @@ public class MapActivity extends Activity {
     
     super.onResume();
 
-    tileLoader.start(loaderHandler);
-    
     startTimer();
     
     setGpsEnabled(gpsWasEnabled);
@@ -244,11 +242,11 @@ public class MapActivity extends Activity {
     public void onLoadFinished(Tile tile) {
       
       if (tile == null) {
-        Log.w("TRILLIAN", "tile: null");
+        Log.w("TRILLIAN", "Tile=null");
       } else if (tile.getBitmap() == null) {
-        Log.w("TRILLIAN", "tile.bitmap: null" + tile);
+        Log.w("TRILLIAN", "Tile bitmap=null" + tile);
       } else {
-        tileCache.setTile(tile);
+        Log.i("TRILLIAN", "Tile loaded: " + tile.toString());
         mapView.invalidate();
       }
     }
@@ -370,26 +368,6 @@ public class MapActivity extends Activity {
           mapView.setGpsStatus(false);
         }
       }
-    }
-  };
-  
-  @SuppressLint("HandlerLeak")
-  public Handler loaderHandler = new Handler() {
-    
-    public void handleMessage(Message message) {
-
-      if (message.obj instanceof Tile) {
-        Tile tile = (Tile) message.obj;
-        if (tile == null) {
-          Log.w("TRILLIAN", "tile: null");
-        } else if (tile.getBitmap() == null) {
-          Log.w("TRILLIAN", "tile.bitmap: null" + tile);
-        } else {
-          tileCache.setTile(tile);
-          mapView.invalidate();
-        }
-      }
-
     }
   };
 }
