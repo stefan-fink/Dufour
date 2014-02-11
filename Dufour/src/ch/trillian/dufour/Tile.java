@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 
 public class Tile {
 
-  private final Map map; 
   private final Layer layer; 
   private final int x;
   private final int y;
@@ -13,9 +12,8 @@ public class Tile {
   private Bitmap bitmap;
   private int state;
   
-  public Tile(Map map, Layer layer, int x, int y) {
+  public Tile(Layer layer, int x, int y) {
     
-    this.map = map;
     this.layer = layer;
     this.x = x;
     this.y = y;
@@ -24,7 +22,7 @@ public class Tile {
   @SuppressLint("DefaultLocale")
   public String toString() {
     
-    return String.format("mapName=%s, layerName=%s, x=%d, y=%d",  map.getName(), layer.getName(), x, y);
+    return String.format("mapName=%s, layerName=%s, x=%d, y=%d",  layer.getName(), x, y);
   }
   
   public String getUrl() {
@@ -32,10 +30,6 @@ public class Tile {
     return layer.getUrl(this);
   }
   
-  public Map getMap() {
-    return map;
-  }
-
   public Layer getLayer() {
     return layer;
   }

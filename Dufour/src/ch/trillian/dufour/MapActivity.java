@@ -56,7 +56,7 @@ public class MapActivity extends Activity {
     super.onCreate(savedInstanceState);
 
     // initialize loader
-    tileLoader = new TileLoader(this);
+    tileLoader = new TileLoader();
     tileLoader.setLoadListener(new LoadListener());
 
     // initialize view
@@ -111,7 +111,7 @@ public class MapActivity extends Activity {
     
     super.onResume();
 
-    tileLoader.start(loaderHandler);
+    tileLoader.start(this, loaderHandler);
     
     startTimer();
     
@@ -188,20 +188,20 @@ public class MapActivity extends Activity {
     String urlFormat = "http://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/20140106/21781/%1$s/%3$d/%2$d.jpeg";
 
     Layer[] layers = { 
-        new Layer("16", urlFormat, 420000f, 350000f, 250f, 256, 256, 0, 0,    7,    4),
-        new Layer("17", urlFormat, 420000f, 350000f, 100f, 256, 256, 0, 0,   18,   12),
-        new Layer("18", urlFormat, 420000f, 350000f,  50f, 256, 256, 0, 0,   37,   24),
-        new Layer("19", urlFormat, 420000f, 350000f,  20f, 256, 256, 0, 0,   93,   62),
-        new Layer("20", urlFormat, 420000f, 350000f,  10f, 256, 256, 0, 0,  187,  124),
-        new Layer("21", urlFormat, 420000f, 350000f,   5f, 256, 256, 0, 0,  374,  249),
-        // new Layer("22", urlFormat, 420000f, 350000f, 2.5f, 256, 256, 0, 0,  749,  499),
-        new Layer("23", urlFormat, 420000f, 350000f, 2.0f, 256, 256, 0, 0,  937,  624),
-        // new Layer("24", urlFormat, 420000f, 350000f, 1.5f, 256, 256, 0, 0, 1249,  833),
-        new Layer("25", urlFormat, 420000f, 350000f, 1.0f, 256, 256, 0, 0, 1875, 1249),
-        //new Layer("26", urlFormat, 420000f, 350000f, 0.5f, 256, 256, 0, 0, 3749, 2499),
+        new Layer("CH16", "16", urlFormat, 420000f, 350000f, 250f, 256, 256, 0, 0,    7,    4),
+        new Layer("CH17", "17",  urlFormat, 420000f, 350000f, 100f, 256, 256, 0, 0,   18,   12),
+        new Layer("CH18", "18",  urlFormat, 420000f, 350000f,  50f, 256, 256, 0, 0,   37,   24),
+        new Layer("CH19", "19",  urlFormat, 420000f, 350000f,  20f, 256, 256, 0, 0,   93,   62),
+        new Layer("CH20", "20",  urlFormat, 420000f, 350000f,  10f, 256, 256, 0, 0,  187,  124),
+        new Layer("CH21", "21",  urlFormat, 420000f, 350000f,   5f, 256, 256, 0, 0,  374,  249),
+        // new Layer("CH22", "22",  urlFormat, 420000f, 350000f, 2.5f, 256, 256, 0, 0,  749,  499),
+        new Layer("CH23", "23",  urlFormat, 420000f, 350000f, 2.0f, 256, 256, 0, 0,  937,  624),
+        // new Layer("CH24", "24",  urlFormat, 420000f, 350000f, 1.5f, 256, 256, 0, 0, 1249,  833),
+        new Layer("CH25", "25",  urlFormat, 420000f, 350000f, 1.0f, 256, 256, 0, 0, 1875, 1249),
+        //new Layer("CH26", "26",  urlFormat, 420000f, 350000f, 0.5f, 256, 256, 0, 0, 3749, 2499),
     };
 
-    return new Map("CH1903", layers, 0.5f, 10.0f, 1.5f, 1.5f);
+    return new Map("CH", layers, 0.5f, 10.0f, 1.5f, 1.5f);
   }
 
   private class MapViewListener implements MapView.ViewListener {

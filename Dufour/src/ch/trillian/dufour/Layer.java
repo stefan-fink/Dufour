@@ -1,12 +1,12 @@
 package ch.trillian.dufour;
 
 import android.location.Location;
-import android.util.Log;
 
 
 public class Layer {
 
   private final String name; 
+  private final String urlName; 
   private final String urlFormat;
   
   // the top left corner in ch1903 coordinates
@@ -37,9 +37,10 @@ public class Layer {
   private Map map;
   private int index;
   
-  public Layer(String name, String urlFormat, float left, float top, float meterPerPixel, int tileSizeX, int tileSizeY, int leftTile, int topTile, int rightTile, int bottomTile) {
+  public Layer(String name, String urlName, String urlFormat, float left, float top, float meterPerPixel, int tileSizeX, int tileSizeY, int leftTile, int topTile, int rightTile, int bottomTile) {
     
     this.name = name;
+    this.urlName = urlName;
     this.urlFormat = urlFormat;
     this.left = left;
     this.top = top;
@@ -130,7 +131,7 @@ public class Layer {
   
   public String getUrl(Tile tile) {
     
-    return String.format(urlFormat, name, getUrlX(tile.getX()), getUrlY(tile.getY()));
+    return String.format(urlFormat, urlName, getUrlX(tile.getX()), getUrlY(tile.getY()));
   }
   
   public int getUrlX(int x) {

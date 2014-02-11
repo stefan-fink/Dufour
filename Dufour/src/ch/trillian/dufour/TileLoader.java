@@ -17,9 +17,18 @@ public class TileLoader {
   private static final int LOADED_FROM_DB = 1;
   private static final int LOADED_FROM_URL = 2;
   private static final int LOAD_FAILED = 3;
+  
+  // the minimum number of milliseconds before updating a tile's LAST_USED
   private static final int UPDATE_LAST_USED_THRESHOLD = 10 * 60 * 1000;
+  
+  // the maximum number of tiles to keep on DB
+  private static int MAX_NUMBER_OF_TILES = 800;
+  
+  // the number of tiles to delete from DB at once
+  private static int DELETE_CHUNK_SIZE = 10;
+  
 
-  MapDatabaseHelper databaseHelper;
+  MapDatabase database;
   LoadListener loadListener;
   Handler handler;
   ArrayDeque<Tile> databaseDequeue;
@@ -35,21 +44,20 @@ public class TileLoader {
     public void onLoadFinished(Tile tile);
   }
 
-  public TileLoader(Context context) {
-
-    databaseHelper = new MapDatabaseHelper(context);
-    databaseHelper.open();
-  }
-
-  public void start(Handler handler) {
+  public void start(Context context, Handler handler) {
     
     this.handler = handler;
 
     databaseDequeue = new ArrayDeque<Tile>();
     downloadDequeue = new ArrayDeque<Tile>();
+
+    database = new MapDatabase(context);
+    database.open();
   }
   
   public void stop() {
+
+    database.close();
 
     stopping = true;
     
@@ -234,14 +242,14 @@ public class TileLoader {
   private boolean getTileFromDatabase(Tile tile) {
 
     // read image from database
-    if (!databaseHelper.getTileImage(tile)) {
+    if (!database.readTile(tile)) {
       return false;
     }
 
     long now = System.currentTimeMillis();
     if (now - tile.getLastUsed() > UPDATE_LAST_USED_THRESHOLD) {
       tile.setLastUsed(now);
-      databaseHelper.updateLastUsed(tile);
+      database.updateLastUsed(tile);
       Log.w("TRILLIAN", "Updated last used=" + tile.toString());
     }
     
@@ -277,10 +285,9 @@ public class TileLoader {
       Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
       if (bitmap != null) {
         tile.setBitmap(bitmap);
+        tile.setLastUsed(System.currentTimeMillis());
         handler.obtainMessage(LOADED_FROM_URL, tile).sendToTarget();
-        Log.w("TRILLIAN", "hallo");
-        databaseHelper.insertOrReplaceTileBitmap(tile, image);
-        // databaseHelper.insertOrReplaceTileBitmap(tile, image);
+        insertOrUpdateTileBitmap(tile, image);
         return true;
       }
 
@@ -290,5 +297,19 @@ public class TileLoader {
     }
 
     return false;
+  }
+  
+  private void insertOrUpdateTileBitmap(Tile tile, byte[] image) {
+    
+    Log.w("TRILLIAN", "insertOrUpdateTileBitmap size=" + image.length);
+    
+    if (database.isTileExisting(tile)) {
+      database.updateBitmap(tile, image);
+    } else {
+      if (database.getTileCount() > MAX_NUMBER_OF_TILES) {
+        database.deleteLeastRecentlyUsed(DELETE_CHUNK_SIZE);
+      }
+      database.insertTile(tile, image);
+    }
   }
 }

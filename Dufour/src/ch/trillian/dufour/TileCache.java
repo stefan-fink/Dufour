@@ -82,7 +82,7 @@ public class TileCache {
 
     // order new tile if none exists
     if (tile == null) {
-      tile = new Tile(map, layer, x, y);
+      tile = new Tile(layer, x, y);
       cache[layerIndex][cacheIndexY][cacheIndexX] = tile;
       orderLoad(tile);
     }
