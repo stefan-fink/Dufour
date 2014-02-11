@@ -19,7 +19,7 @@ public class TileLoader {
   private static final int LOAD_FAILED = 3;
   
   // the minimum number of milliseconds before updating a tile's LAST_USED
-  private static final int UPDATE_LAST_USED_THRESHOLD = 10 * 60 * 1000;
+  private static final int LAST_USED_THRESHOLD = 24 * 60 * 60 * 1000;
   
   // the maximum number of tiles to keep on DB
   private static int MAX_NUMBER_OF_TILES = 800;
@@ -27,52 +27,31 @@ public class TileLoader {
   // the number of tiles to delete from DB at once
   private static int DELETE_CHUNK_SIZE = 10;
   
-
-  MapDatabase database;
   LoadListener loadListener;
   Handler handler;
-  ArrayDeque<Tile> databaseDequeue;
-  ArrayDeque<Tile> downloadDequeue;
 
-  DatabaseThread databaseThread;
-  DownloadThread downloadThread;
+  private DatabaseLoader databaseLoader = new DatabaseLoader();
+  private UrlLoader urlLoader = new UrlLoader();
   
-  boolean stopping;
-
   public interface LoadListener {
 
     public void onLoadFinished(Tile tile);
   }
+  
+  public TileLoader(Context context) {
+    
+    MapDatabase.newInstance(context);
+  }
 
-  public void start(Context context, Handler handler) {
+  public void start(Handler handler) {
     
     this.handler = handler;
-
-    databaseDequeue = new ArrayDeque<Tile>();
-    downloadDequeue = new ArrayDeque<Tile>();
-
-    database = new MapDatabase(context);
-    database.open();
   }
   
   public void stop() {
 
-    database.close();
-
-    stopping = true;
-    
-    if (databaseThread != null) {
-      databaseThread.shutdown();
-      databaseThread = null;
-    }
-    
-    if (downloadThread != null) {
-      downloadThread.shutdown();
-      downloadThread = null;
-    }
-    
-    databaseDequeue = null;
-    downloadDequeue = null;
+    databaseLoader.shutdown();
+    urlLoader.shutdown();
   }
   
   public void setLoadListener(LoadListener loadListener) {
@@ -82,119 +61,162 @@ public class TileLoader {
 
   public void orderLoadTile(Tile tile) {
 
-    synchronized (databaseDequeue) {
-
-      // put tile in order queue
-      databaseDequeue.offer(tile);
-
-      // (re)start thread
-      if (databaseThread == null) {
-        databaseThread = new DatabaseThread();
-        databaseThread.start();
-      }
-      
-      if (databaseDequeue.size() == 1) {
-        databaseDequeue.notify();
-      }
-    }
+    databaseLoader.orderLoad(tile);
   }
 
   public void cancelLoadTile(Tile tile) {
 
-    synchronized (databaseDequeue) {
-      databaseDequeue.remove(tile);
-    }
-    
-    synchronized (downloadDequeue) {
-      downloadDequeue.remove(tile);
-    }
+    databaseLoader.cancelLoad(tile);
+    urlLoader.cancelLoad(tile);
   }
 
-  private class DatabaseThread extends Thread {
+  private class DatabaseLoader implements Runnable {
   
     private boolean shutdown;
+    private Thread thread;
+    private ArrayDeque<Tile> queue = new ArrayDeque<Tile>();
     
     public void shutdown() {
       
       shutdown = true;
-      synchronized (databaseDequeue) {
-        databaseDequeue.notify();
+      synchronized (queue) {
+        queue.notify();
       }
     }
     
+    public void orderLoad(Tile tile) {
+
+      synchronized (queue) {
+
+        // put tile in order queue
+        queue.offer(tile);
+
+        // (re)start thread
+        if (thread == null) {
+          thread = new Thread(this);
+          thread.start();
+        }
+        
+        if (queue.size() == 1) {
+          queue.notify();
+        }
+      }
+    }
+
+    public void cancelLoad(Tile tile) {
+
+      synchronized (queue) {
+        queue.remove(tile);
+      }
+    }
+
     public void run() {
 
       Log.w("TRILLIAN", "DatabaseThread started.");
 
+      MapDatabase database = MapDatabase.getInstance();
       int numTiles = 0;
       
       try {
         
+        database.openDatabase();
+        
         while (true) {
   
           if (shutdown) {
-            Log.w("TRILLIAN", "DatabaseThread has been shut down.");
-            return;
+            break;
           }
           
           Tile tile = null;
   
-          synchronized (databaseDequeue) {
-            if ((tile = databaseDequeue.poll()) == null) {
+          synchronized (queue) {
+            if ((tile = queue.poll()) == null) {
               Log.w("TRILLIAN", "DatabaseThread going to sleep (loaded " + numTiles + " tiles).");
-              databaseDequeue.wait();
+              queue.wait();
               Log.w("TRILLIAN", "DatabaseThread woke up.");
               numTiles = 0;
               continue;
             }
           }
   
-          if (getTileFromDatabase(tile)) {
+          if (getTileFromDatabase(database, tile)) {
             numTiles++;
             continue;
           }
   
           // order tile from download thread
-          orderDownloadTile(tile);
+          urlLoader.orderLoad(tile);
         }
         
       } catch (InterruptedException e) {
-        synchronized (databaseDequeue) {
+        synchronized (queue) {
           Log.w("TRILLIAN", "DatabaseThread has been interrupted.");
-          databaseThread = null;
         }
       }
+      
+      database.closeDatabase();
+      thread = null;
+      Log.w("TRILLIAN", "DatabaseThread has been shut down.");
+    }
+    
+    private boolean getTileFromDatabase(MapDatabase database, Tile tile) {
+
+      // read image from database
+      if (!database.readTile(tile)) {
+        return false;
+      }
+
+      // notify GUI
+      handler.obtainMessage(LOADED_FROM_DB, tile).sendToTarget();
+
+      // update last used if update threshold reached
+      long now = System.currentTimeMillis();
+      if (now - tile.getLastUsed() > LAST_USED_THRESHOLD) {
+        tile.setLastUsed(now);
+        database.updateLastUsed(tile);
+      }
+      
+      return true;
     }
   }
   
-  private void orderDownloadTile(Tile tile) {
-
-    synchronized (downloadDequeue) {
-
-      // put tile in order queue
-      downloadDequeue.offer(tile);
-
-      // (re)start thread
-      if (downloadThread == null) {
-        downloadThread = new DownloadThread();
-        downloadThread.start();
-      }
-      
-      if (downloadDequeue.size() == 1) {
-        downloadDequeue.notify();
-      }
-    }
-  }
-
-  private class DownloadThread extends Thread {
+  private class UrlLoader implements Runnable {
     
     private boolean shutdown;
+    private Thread thread;
+    private ArrayDeque<Tile> queue = new ArrayDeque<Tile>();
     
     public void shutdown() {
       
       shutdown = true;
-      synchronized (downloadDequeue) {
-        downloadDequeue.notify();
+      synchronized (queue) {
+        queue.notify();
+      }
+    }
+    
+    public void orderLoad(Tile tile) {
+
+      synchronized (queue) {
+
+        // put tile in order queue
+        queue.offer(tile);
+
+        // (re)start thread
+        if (thread == null) {
+          thread = new Thread(this);
+          thread.start();
+        }
+        
+        if (queue.size() == 1) {
+          queue.notify();
+        }
+      }
+    }
+
+    public void cancelLoad(Tile tile) {
+      
+      synchronized (queue) {
+        queue.remove(tile);
       }
     }
     
@@ -202,114 +224,101 @@ public class TileLoader {
 
       Log.w("TRILLIAN", "DownloadThread started.");
       
+      MapDatabase database = MapDatabase.getInstance();
       int numTiles = 0;
 
       try {
         
+        database.openDatabase();
+        
         while (true) {
   
           if (shutdown) {
-            Log.w("TRILLIAN", "DownloadThread has been shut down.");
-            return;
+            break;
           }
           
           Tile tile = null;
   
-          synchronized (downloadDequeue) {
-            if ((tile = downloadDequeue.poll()) == null) {
+          synchronized (queue) {
+            if ((tile = queue.poll()) == null) {
               Log.w("TRILLIAN", "DownloadThread going to sleep (downloaded " + numTiles + " tiles).");
-              downloadDequeue.wait();
+              queue.wait();
               Log.w("TRILLIAN", "DownloadThread woke up.");
               numTiles = 0;
               continue;
             }
           }
   
-          getTileFromUrl(tile);
+          getTileFromUrl(database, tile);
           
           numTiles++;
         }
         
       } catch (InterruptedException e) {
-        synchronized (downloadDequeue) {
+        synchronized (queue) {
           Log.w("TRILLIAN", "DownloadThread has been interrupted.");
-          downloadThread = null;
+          
         }
       }
+      
+      database.closeDatabase();
+      thread = null;
+      Log.w("TRILLIAN", "DownloadThread has been shut down.");
     }
-  }
-  
-  private boolean getTileFromDatabase(Tile tile) {
+    
+    private boolean getTileFromUrl(MapDatabase database, Tile tile) {
 
-    // read image from database
-    if (!database.readTile(tile)) {
+      try {
+
+        // open http stream
+        URL url = new URL(tile.getUrl());
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.addRequestProperty("referer", "http://map.geo.admin.ch/");
+        InputStream inputStream = connection.getInputStream();
+
+        // read inputStream into byte[]
+        int numRead;
+        byte[] block = new byte[16384];
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        while ((numRead = inputStream.read(block, 0, block.length)) != -1) {
+          if (shutdown) {
+            return false;
+          }
+          buffer.write(block, 0, numRead);
+        }
+        inputStream.close();
+        connection.disconnect();
+        buffer.flush();
+        byte[] image = buffer.toByteArray();
+
+        // convert byte[] to Bitmap
+        Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
+        if (bitmap != null) {
+          tile.setBitmap(bitmap);
+          tile.setLastUsed(System.currentTimeMillis());
+          handler.obtainMessage(LOADED_FROM_URL, tile).sendToTarget();
+          insertOrUpdateTileBitmap(database, tile, image);
+          return true;
+        }
+
+      } catch (Exception e) {
+        Log.w("TRILLIAN", "Exception: " + e.getMessage(), e);
+        handler.obtainMessage(LOAD_FAILED, tile).sendToTarget();
+      }
+
       return false;
     }
-
-    long now = System.currentTimeMillis();
-    if (now - tile.getLastUsed() > UPDATE_LAST_USED_THRESHOLD) {
-      tile.setLastUsed(now);
-      database.updateLastUsed(tile);
-      Log.w("TRILLIAN", "Updated last used=" + tile.toString());
-    }
     
-    // notify GUI
-    handler.obtainMessage(LOADED_FROM_DB, tile).sendToTarget();
-
-    return true;
-  }
-
-  private boolean getTileFromUrl(Tile tile) {
-
-    try {
-
-      // open http stream
-      URL url = new URL(tile.getUrl());
-      HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-      connection.addRequestProperty("referer", "http://map.geo.admin.ch/");
-      InputStream inputStream = connection.getInputStream();
-
-      // read inputStream into byte[]
-      int numRead;
-      byte[] block = new byte[16384];
-      ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-      while ((numRead = inputStream.read(block, 0, block.length)) != -1) {
-        buffer.write(block, 0, numRead);
+    private void insertOrUpdateTileBitmap(MapDatabase database, Tile tile, byte[] image) {
+      
+      if (database.isTileExisting(tile)) {
+        database.updateBitmap(tile, image);
+      } else {
+        if (database.getTileCount() > MAX_NUMBER_OF_TILES) {
+          database.deleteLeastRecentlyUsed(DELETE_CHUNK_SIZE);
+        }
+        database.insertTile(tile, image);
       }
-      inputStream.close();
-      connection.disconnect();
-      buffer.flush();
-      byte[] image = buffer.toByteArray();
-
-      // convert byte[] to Bitmap
-      Bitmap bitmap = BitmapFactory.decodeByteArray(image, 0, image.length);
-      if (bitmap != null) {
-        tile.setBitmap(bitmap);
-        tile.setLastUsed(System.currentTimeMillis());
-        handler.obtainMessage(LOADED_FROM_URL, tile).sendToTarget();
-        insertOrUpdateTileBitmap(tile, image);
-        return true;
-      }
-
-    } catch (Exception e) {
-      Log.w("TRILLIAN", "Exception: " + e.getMessage(), e);
-      handler.obtainMessage(LOAD_FAILED, tile).sendToTarget();
-    }
-
-    return false;
-  }
-  
-  private void insertOrUpdateTileBitmap(Tile tile, byte[] image) {
-    
-    Log.w("TRILLIAN", "insertOrUpdateTileBitmap size=" + image.length);
-    
-    if (database.isTileExisting(tile)) {
-      database.updateBitmap(tile, image);
-    } else {
-      if (database.getTileCount() > MAX_NUMBER_OF_TILES) {
-        database.deleteLeastRecentlyUsed(DELETE_CHUNK_SIZE);
-      }
-      database.insertTile(tile, image);
     }
   }
 }

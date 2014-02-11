@@ -56,7 +56,7 @@ public class MapActivity extends Activity {
     super.onCreate(savedInstanceState);
 
     // initialize loader
-    tileLoader = new TileLoader();
+    tileLoader = new TileLoader(this);
     tileLoader.setLoadListener(new LoadListener());
 
     // initialize view
@@ -111,7 +111,7 @@ public class MapActivity extends Activity {
     
     super.onResume();
 
-    tileLoader.start(this, loaderHandler);
+    tileLoader.start(loaderHandler);
     
     startTimer();
     

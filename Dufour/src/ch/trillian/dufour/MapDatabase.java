@@ -14,13 +14,19 @@ public class MapDatabase extends SQLiteOpenHelper {
   private static final String DATABASE_NAME = "map.db";
   private static final int DATABASE_VERSION = 1;
 
+  // Our singleton
+  private static MapDatabase instance;
+  
   // our database
   private SQLiteDatabase db;
+  
+  // the number of open 'connections'
+  private int openCount = 0;
   
   // the current number of tiles
   private int tileCount;
   
-  public MapDatabase(Context context) {
+  private MapDatabase(Context context) {
     
     super(context, DATABASE_NAME, null, DATABASE_VERSION);
   }
@@ -37,22 +43,47 @@ public class MapDatabase extends SQLiteOpenHelper {
     TileTable.onUpgrade(database, oldVersion, newVersion);
   }
   
-  public void open() {
+  public static MapDatabase newInstance(Context context) {
+    
+    if (instance == null) {
+      instance = new MapDatabase(context);
+    }
+      
+    return instance;
+  }
+  
+  public static MapDatabase getInstance() {
+    
+    return instance;
+  }
+  
+  public synchronized void openDatabase() {
     
     long start = System.currentTimeMillis();
 
-    db = getWritableDatabase();
-    tileCount = readTileCount();
+    if (openCount == 0) {
+      db = getWritableDatabase();
+      tileCount = readTileCount();
+      Log.w("Database", String.format("Opened (tileCount=%d)", tileCount));
+    }
+
+    openCount++;
     
-    Log.w("Database", String.format("Opened in %d ms (#tiles=%d)", (System.currentTimeMillis() - start), tileCount));
+    Log.w("Database", String.format("Opened in %d ms (openCount=%d)", (System.currentTimeMillis() - start), openCount));
   }
 
-  public void close() {
+  public synchronized void closeDatabase() {
 
-    if (db != null) {
+    long start = System.currentTimeMillis();
+
+    openCount--;
+
+    if (openCount == 0) {
       db.close();
       db = null;
     }
+
+    Log.w("Database", String.format("Closed in %d ms (openCount=%d)", (System.currentTimeMillis() - start), openCount));
   }
 
   public int getTileCount() {
@@ -176,7 +207,7 @@ public class MapDatabase extends SQLiteOpenHelper {
       tileCount++;
     }
     
-    Log.w("Database", String.format("Inserted row in %d ms (#tiles=%d)", (System.currentTimeMillis() - start), tileCount));
+    Log.w("Database", String.format("Inserted row in %d ms (tileCount=%d)", (System.currentTimeMillis() - start), tileCount));
   }
   
   private static final String SQL_DELETE_LEAST_RECENTLY_USED = "DELETE FROM " + TileTable.TABLE_NAME + " WHERE ROWID IN (SELECT ROWID FROM " + TileTable.TABLE_NAME + " ORDER BY " + TileTable.COL_LAST_USED + " ASC LIMIT ?)";
@@ -193,6 +224,6 @@ public class MapDatabase extends SQLiteOpenHelper {
       tileCount -= rowsDeleted;
     }
 
-    Log.w("Database", String.format("Deleted %d rows in %d ms (#tiles=%d)", rowsDeleted, (System.currentTimeMillis() - start), tileCount));
+    Log.w("Database", String.format("Deleted %d rows in %d ms (tileCount=%d)", rowsDeleted, (System.currentTimeMillis() - start), tileCount));
   }
 }

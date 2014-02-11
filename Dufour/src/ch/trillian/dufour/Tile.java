@@ -22,7 +22,7 @@ public class Tile {
   @SuppressLint("DefaultLocale")
   public String toString() {
     
-    return String.format("mapName=%s, layerName=%s, x=%d, y=%d",  layer.getName(), x, y);
+    return String.format("layerName=%s, x=%d, y=%d",  layer.getName(), x, y);
   }
   
   public String getUrl() {
