@@ -155,6 +155,7 @@ public class TileLoader {
       }
       
       database.closeDatabase();
+      shutdown = false;
       thread = null;
       Log.w("TRILLIAN", "DatabaseThread has been shut down.");
     }
@@ -262,6 +263,7 @@ public class TileLoader {
       }
       
       database.closeDatabase();
+      shutdown = false;
       thread = null;
       Log.w("TRILLIAN", "DownloadThread has been shut down.");
     }
