@@ -9,15 +9,21 @@
         android:id="@+id/map_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        
+        custom:mapGridTextSize="10dp" 
+        
+        custom:gpsPosSize="6dp" 
+        custom:gpsPosColor="#FFFFFF00" 
+        custom:gpsPosAltColor="#FF00FFFF" 
+        custom:gpsPosBorderColor="#FF000000" 
+        
         custom:infoTextSize="22sp"
         custom:infoTextColor="#FF404040"
         custom:infoTextAltColor="#FF800000"
         custom:infoLineColor="#FF000000"
         custom:infoBackColor="#90FFFFFF"
         custom:infoLineStroke="1dp" 
-        custom:textSize="24sp"
-        custom:gridStroke="1dp" 
-        custom:gridTextSize="10dp" 
+        
         custom:crossSize="14dp" 
         custom:crossStroke="1.3dp" />
     

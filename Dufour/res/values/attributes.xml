@@ -1,17 +1,24 @@
 <resources>
 
     <declare-styleable name="MapView">
+        
+        <attr name="mapGridTextSize" format="dimension" />
+ 
+        <attr name="gpsPosSize" format="dimension" />
+        <attr name="gpsPosColor" format="color"/>
+        <attr name="gpsPosAltColor" format="color"/>
+        <attr name="gpsPosBorderColor" format="color"/>
+                
         <attr name="infoTextSize" format="dimension" />
         <attr name="infoTextColor" format="color"/>
         <attr name="infoTextAltColor" format="color"/>
         <attr name="infoLineColor" format="color"/>
         <attr name="infoBackColor" format="color"/>
         <attr name="infoLineStroke" format="dimension" />
-        <attr name="textSize" format="dimension" />
-        <attr name="gridStroke" format="dimension" />
-        <attr name="gridTextSize" format="dimension" />
+        
         <attr name="crossSize" format="dimension" />
         <attr name="crossStroke" format="dimension" />
+        
     </declare-styleable>
-
+    
 </resources>

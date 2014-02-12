@@ -37,25 +37,25 @@ public class MapView extends View {
   private Layer layer;
   
   // attributes
+  private int mapGridTextSize;
+  private int gpsPosSize;
+  private int gpsPosColor;
+  private int gpsPosAltColor;
+  private int gpsPosBorderColor;
   private int infoTextSize;
   private int infoTextColor;
   private int infoTextAltColor;
   private int infoLineColor;
   private int infoBackColor;
   private int infoLineStroke;
-  private int textSize;
-  private int gridStroke;
-  private int gridTextSize;
   private int crossSize;
   private int crossStroke;
 
   // painters and paths
+  private Paint mapPaint;
+  private Paint gpsPaint;
   private Paint infoPaint;
-  private Paint textPaint;
-  private Paint gridLinePaint;
-  private Paint gridTextPaint;
   private Paint crossPaint;
-  private Paint tilePaint;
 
   // bitmaps
   private Bitmap infoLocationBitmap;
@@ -70,7 +70,7 @@ public class MapView extends View {
   private float centerX;
   private float centerY;
   
-  // position and zoom
+  // position and zoom (position is in mapPixels)
   // pixelX = (positionX + x) * scale 
   // x = pixelX / scale - positionX
   private float positionX = 0f;
@@ -110,25 +110,27 @@ public class MapView extends View {
     // get attributes
     TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.MapView, 0, 0);
     try {
+      mapGridTextSize = a.getDimensionPixelSize(R.styleable.MapView_mapGridTextSize, 10);
+      gpsPosSize = a.getDimensionPixelSize(R.styleable.MapView_gpsPosSize, 10);
+      gpsPosColor = a.getDimensionPixelSize(R.styleable.MapView_gpsPosColor, 0xFF000000);
+      gpsPosAltColor = a.getDimensionPixelSize(R.styleable.MapView_gpsPosAltColor, 0xFF000000);
+      gpsPosBorderColor = a.getDimensionPixelSize(R.styleable.MapView_gpsPosBorderColor, 0xFF000000);
       infoTextSize = a.getDimensionPixelSize(R.styleable.MapView_infoTextSize, 20);
       infoTextColor = a.getColor(R.styleable.MapView_infoTextColor, 0xFF000000);
       infoTextAltColor = a.getColor(R.styleable.MapView_infoTextAltColor, 0xFFFF0000);
       infoLineColor = a.getColor(R.styleable.MapView_infoLineColor, 0xFF000000);
       infoBackColor = a.getColor(R.styleable.MapView_infoBackColor, 0x80FFFFFF);
       infoLineStroke = a.getDimensionPixelSize(R.styleable.MapView_infoLineStroke, 1);
-      textSize = a.getDimensionPixelSize(R.styleable.MapView_textSize, 10);
-      gridStroke = a.getDimensionPixelSize(R.styleable.MapView_gridStroke, 1);
-      gridTextSize = a.getDimensionPixelSize(R.styleable.MapView_gridTextSize, 10);
       crossSize = a.getDimensionPixelSize(R.styleable.MapView_crossSize, 10);
       crossStroke = a.getDimensionPixelSize(R.styleable.MapView_crossStroke, 1);
     } finally {
       a.recycle();
     }
 
-    // init painters
+    // initialize painters
     initPainters();
 
-    // preload bitmaps
+    // load bitmaps
     infoLocationBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_info_location);
     infoSpeedBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_info_speed);
     infoAltitudeBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_info_altitude);
@@ -138,6 +140,26 @@ public class MapView extends View {
     mGestureDetector = new GestureDetector(context, new GestureListener());
   }
 
+  private void initPainters() {
+
+    mapPaint = new Paint(0);
+    mapPaint.setColor(0xFF808080);
+    mapPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+    mapPaint.setTextSize(mapGridTextSize);
+    mapPaint.setTextAlign(Paint.Align.CENTER);
+
+    gpsPaint = new Paint(0);
+
+    infoPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    infoPaint.setTextAlign(Paint.Align.LEFT);
+    infoPaint.setTextSize(infoTextSize);
+    infoPaint.setStrokeWidth(infoLineStroke);
+
+    crossPaint = new Paint(0);
+    crossPaint.setStyle(Paint.Style.STROKE);
+    crossPaint.setStrokeWidth(crossStroke);
+  }
+  
   public float getScale() {
     
     return scale;
@@ -350,35 +372,30 @@ public class MapView extends View {
 
     super.onDraw(canvas);
     
+    drawMap(canvas);
+    
+    drawGpsPosition(canvas);
+    
+    drawInfo(canvas);
+    
+    drawCross(canvas);
+  }
+
+  private final void drawMap(Canvas canvas) {
+    
+    // prepare canvas
     canvas.save();
     canvas.scale(scale, scale);
     canvas.translate(positionX, positionY);
 
-    // scale grid stroke size
-    gridLinePaint.setStrokeWidth(gridStroke / scale);
-
-    // draw bitmaps and grids
+    // order tiles to draw
     updateTilesMinMax();
     
     float incX = layer.getTileSizeX();
     float incY = layer.getTileSizeY();
     float minX = minTileX * incX;
-    float maxX = (maxTileX + 1) * incX;
     float minY = minTileY * incY;
-    float maxY = (maxTileY + 1) * incY;
     float x, y;
-    
-    // draw grid lines
-    x = minX;
-    for(int i = minTileX; i <= maxTileX + 1; i++) {
-      canvas.drawLine(x, minY, x, maxY, gridLinePaint);
-      x += incX;
-    }
-    y = minY;
-    for(int j = minTileY; j <= maxTileY + 1; j++) {
-      canvas.drawLine(minX, y, maxX, y, gridLinePaint);
-      y += incY;
-    }
     
     // draw bitmaps
     x = minX;
@@ -390,7 +407,7 @@ public class MapView extends View {
           if (tile != null) {
             Bitmap bitmap = tile.getBitmap();
             if (bitmap != null) {
-              canvas.drawBitmap(bitmap, x, y, tilePaint);
+              canvas.drawBitmap(bitmap, x, y, mapPaint);
             }
           }
         }
@@ -400,68 +417,55 @@ public class MapView extends View {
     }
     
     // draw grid coordinates
-      x = minX + incX / 2;
-      for(int i = minTileX; i <= maxTileX; i++) {
-        y = minY + incY / 2 + gridTextPaint.getTextSize() / 2;
-        for(int j = minTileY; j <= maxTileY; j++) {
-          String text = layer.hasTile(i, j) ? "(" + i + "," + j + ")" : "no data";
-          canvas.drawText(text, x, y, gridTextPaint);
-          y += incY;
-        }
-        x += incX;
+    x = minX + incX / 2;
+    for(int i = minTileX; i <= maxTileX; i++) {
+      y = minY + incY / 2 + mapPaint.getTextSize() / 2;
+      for(int j = minTileY; j <= maxTileY; j++) {
+        String text = layer.hasTile(i, j) ? "(" + i + "," + j + ")" : "no data";
+        canvas.drawText(text, x, y, mapPaint);
+        y += incY;
       }
-    
-    // draw gps position
-    if (gpsLastLocation != null) {
-      canvas.save();
-      float[] mapPixel = layer.locationToMapPixel(gpsLastLocation);
-      canvas.translate(mapPixel[0], mapPixel[1]);
-      
-      if (gpsLastLocation.hasAccuracy()) {
-        float accuracySize = gpsLastLocation.getAccuracy() / layer.getMeterPerPixel();
-        crossPaint.setColor(0x60000000);
-        crossPaint.setStyle(Paint.Style.FILL);
-        canvas.drawCircle(0, 0, accuracySize, crossPaint);
-      }
-
-      canvas.scale(1f/scale, 1f/scale);
-      crossPaint.setColor(gpsTracking ? 0xFFFF0000 : 0xFF0000FF);
-      crossPaint.setStyle(Paint.Style.FILL);
-      canvas.drawCircle(0, 0, crossSize * 0.4f, crossPaint);
-      crossPaint.setStyle(Paint.Style.STROKE);
-      crossPaint.setColor(0xff000000);
-      canvas.drawCircle(0, 0, crossSize * 0.4f, crossPaint);
-      canvas.restore();
+      x += incX;
     }
     
     canvas.restore();
+  }
 
-    // draw info
-    if (showInfo) {
-      
-      float lineHeight = infoPaint.getFontSpacing() * 1.3f;
-      
-      // draw background
-      y = 0f;
-      int lines = gpsEnabled ? 2 : 1;
-      infoPaint.setColor(infoBackColor);
-      canvas.drawRect(0f, y, screenSizeX, lines * lineHeight, infoPaint);
-     
-      // draw coordinates
-      String[] displayCoordinates = layer.getDisplayCoordinates(screen2map(centerX, scale, positionX), screen2map(centerY, scale, positionY));
-      String text = String.format("%s, %s (%1.2f@%s)", displayCoordinates[0], displayCoordinates[1], scale, layer.getName());
-      drawInfoText(canvas, infoLocationBitmap, text, 0f, y, screenSizeX, lineHeight, infoTextColor, infoPaint);
-
-      // draw GPS details
-      if (gpsLastLocation != null) {
-        y += lineHeight;
-        int textColor = gpsStatus ? infoTextColor : infoTextAltColor;
-        drawInfoText(canvas, infoSpeedBitmap, infoSpeed, 0f, y, centerX, lineHeight, textColor, infoPaint);
-        infoPaint.setColor(infoLineColor);
-        canvas.drawLine(centerX, y, centerX, y + lineHeight, infoPaint);
-        drawInfoText(canvas, infoAltitudeBitmap, infoAltitude, centerX, y, centerX, lineHeight, textColor, infoPaint);
-      }
+  private final void drawGpsPosition(Canvas canvas) {
+    
+    if (gpsLastLocation == null) {
+      return;
     }
+      
+    // get coordinates of GPS position in screen pixels
+    float[] mapPixel = layer.locationToMapPixel(gpsLastLocation);
+    float x = map2screen(mapPixel[0], scale, positionX);
+    float y = map2screen(mapPixel[1], scale, positionY);
+    
+    // prepare canvas
+    canvas.save();
+    canvas.translate(x, y);
+
+    // draw accuracy
+    if (gpsLastLocation.hasAccuracy()) {
+      float accuracySize = gpsLastLocation.getAccuracy() / layer.getMeterPerPixel() * scale;
+      gpsPaint.setColor(0x60000000);
+      gpsPaint.setStyle(Paint.Style.FILL);
+      canvas.drawCircle(0, 0, accuracySize, gpsPaint);
+    }
+    
+    // draw colored dot
+    gpsPaint.setColor(gpsTracking ? gpsPosColor : gpsPosAltColor);
+    gpsPaint.setStyle(Paint.Style.FILL);
+    canvas.drawCircle(0, 0, gpsPosSize, gpsPaint);
+    gpsPaint.setStyle(Paint.Style.STROKE);
+    gpsPaint.setColor(gpsPosBorderColor);
+    canvas.drawCircle(0, 0, gpsPosSize, gpsPaint);
+    
+    canvas.restore();
+  }
+
+  private final void drawCross(Canvas canvas) {
     
     // draw cross
     canvas.save();
@@ -472,7 +476,38 @@ public class MapView extends View {
     canvas.restore();
   }
 
-  private void drawInfoText(Canvas canvas, Bitmap bitmap, String text, float x, float y, float width, float height, int textColor, Paint paint) {
+  @SuppressLint("DefaultLocale")
+  private final void drawInfo(Canvas canvas) {
+    
+    if (!showInfo) {
+      return;
+    }
+      
+    float lineHeight = infoPaint.getFontSpacing() * 1.3f;
+    
+    // draw background
+    float y = 0f;
+    int lines = gpsEnabled ? 2 : 1;
+    infoPaint.setColor(infoBackColor);
+    canvas.drawRect(0f, y, screenSizeX, lines * lineHeight, infoPaint);
+   
+    // draw coordinates
+    String[] displayCoordinates = layer.getDisplayCoordinates(screen2map(centerX, scale, positionX), screen2map(centerY, scale, positionY));
+    String text = String.format("%s, %s (%1.2f@%s)", displayCoordinates[0], displayCoordinates[1], scale, layer.getName());
+    drawInfoText(canvas, infoLocationBitmap, text, 0f, y, screenSizeX, lineHeight, infoTextColor, infoPaint);
+
+    // draw GPS details
+    if (gpsLastLocation != null) {
+      y += lineHeight;
+      int textColor = gpsStatus ? infoTextColor : infoTextAltColor;
+      drawInfoText(canvas, infoSpeedBitmap, infoSpeed, 0f, y, centerX, lineHeight, textColor, infoPaint);
+      infoPaint.setColor(infoLineColor);
+      canvas.drawLine(centerX, y, centerX, y + lineHeight, infoPaint);
+      drawInfoText(canvas, infoAltitudeBitmap, infoAltitude, centerX, y, centerX, lineHeight, textColor, infoPaint);
+    }
+  }
+
+  private final void drawInfoText(Canvas canvas, Bitmap bitmap, String text, float x, float y, float width, float height, int textColor, Paint paint) {
 
     // draw bitmap
     canvas.save();
@@ -606,36 +641,6 @@ public class MapView extends View {
     
     this.gpsStatus = gpsStatus;
     invalidate();
-  }
-  
-  private void initPainters() {
-
-    infoPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    infoPaint.setTextAlign(Paint.Align.LEFT);
-    infoPaint.setTextSize(infoTextSize);
-    infoPaint.setStrokeWidth(infoLineStroke);
-    
-    textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    textPaint.setColor(0xFF000000);
-    textPaint.setStrokeWidth(1);
-    textPaint.setTextAlign(Paint.Align.LEFT);
-
-    gridLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    gridLinePaint.setColor(0xFF000000);
-    gridLinePaint.setStyle(Paint.Style.STROKE);
-    gridLinePaint.setStrokeWidth(crossStroke);
-
-    gridTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    gridTextPaint.setColor(0xFF808080);
-    gridTextPaint.setStyle(Paint.Style.FILL_AND_STROKE);
-    gridTextPaint.setTextSize(gridTextSize);
-    gridTextPaint.setTextAlign(Paint.Align.CENTER);
-
-    crossPaint = new Paint(0);
-    crossPaint.setStyle(Paint.Style.STROKE);
-    crossPaint.setStrokeWidth(crossStroke);
-
-    tilePaint = new Paint(0);
   }
   
   public Layer getLayer() {
