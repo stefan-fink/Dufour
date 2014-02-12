@@ -8,12 +8,13 @@
         <attr name="gpsPosColor" format="color"/>
         <attr name="gpsPosAltColor" format="color"/>
         <attr name="gpsPosBorderColor" format="color"/>
-                
+        <attr name="gpsPosAccuracyColor" format="color"/>
+        
         <attr name="infoTextSize" format="dimension" />
         <attr name="infoTextColor" format="color"/>
-        <attr name="infoTextAltColor" format="color"/>
         <attr name="infoLineColor" format="color"/>
         <attr name="infoBackColor" format="color"/>
+        <attr name="infoBackAltColor" format="color"/>
         <attr name="infoLineStroke" format="dimension" />
         
         <attr name="crossSize" format="dimension" />

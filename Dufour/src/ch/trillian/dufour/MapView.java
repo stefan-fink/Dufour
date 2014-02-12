@@ -42,11 +42,12 @@ public class MapView extends View {
   private int gpsPosColor;
   private int gpsPosAltColor;
   private int gpsPosBorderColor;
+  private int gpsPosAccuracyColor;
   private int infoTextSize;
   private int infoTextColor;
-  private int infoTextAltColor;
   private int infoLineColor;
   private int infoBackColor;
+  private int infoBackAltColor;
   private int infoLineStroke;
   private int crossSize;
   private int crossStroke;
@@ -115,11 +116,12 @@ public class MapView extends View {
       gpsPosColor = a.getColor(R.styleable.MapView_gpsPosColor, 0xFF000000);
       gpsPosAltColor = a.getColor(R.styleable.MapView_gpsPosAltColor, 0xFF000000);
       gpsPosBorderColor = a.getColor(R.styleable.MapView_gpsPosBorderColor, 0xFF000000);
+      gpsPosAccuracyColor = a.getColor(R.styleable.MapView_gpsPosAccuracyColor, 0x50000000);
       infoTextSize = a.getDimensionPixelSize(R.styleable.MapView_infoTextSize, 20);
       infoTextColor = a.getColor(R.styleable.MapView_infoTextColor, 0xFF000000);
-      infoTextAltColor = a.getColor(R.styleable.MapView_infoTextAltColor, 0xFFFF0000);
       infoLineColor = a.getColor(R.styleable.MapView_infoLineColor, 0xFF000000);
       infoBackColor = a.getColor(R.styleable.MapView_infoBackColor, 0x80FFFFFF);
+      infoBackAltColor = a.getColor(R.styleable.MapView_infoBackAltColor, 0x80FF0000);
       infoLineStroke = a.getDimensionPixelSize(R.styleable.MapView_infoLineStroke, 1);
       crossSize = a.getDimensionPixelSize(R.styleable.MapView_crossSize, 10);
       crossStroke = a.getDimensionPixelSize(R.styleable.MapView_crossStroke, 1);
@@ -449,7 +451,7 @@ public class MapView extends View {
     // draw accuracy
     if (gpsLastLocation.hasAccuracy()) {
       float accuracySize = gpsLastLocation.getAccuracy() / layer.getMeterPerPixel() * scale;
-      gpsPaint.setColor(0x60000000);
+      gpsPaint.setColor(gpsPosAccuracyColor);
       gpsPaint.setStyle(Paint.Style.FILL);
       canvas.drawCircle(0, 0, accuracySize, gpsPaint);
     }
@@ -485,29 +487,36 @@ public class MapView extends View {
       
     float lineHeight = infoPaint.getFontSpacing() * 1.3f;
     
-    // draw background
-    float y = 0f;
-    int lines = gpsEnabled ? 2 : 1;
-    infoPaint.setColor(infoBackColor);
-    canvas.drawRect(0f, y, screenSizeX, lines * lineHeight, infoPaint);
-   
     // draw coordinates
     String[] displayCoordinates = layer.getDisplayCoordinates(screen2map(centerX, scale, positionX), screen2map(centerY, scale, positionY));
     String text = String.format("%s, %s (%1.2f@%s)", displayCoordinates[0], displayCoordinates[1], scale, layer.getName());
-    drawInfoText(canvas, infoLocationBitmap, text, 0f, y, screenSizeX, lineHeight, infoTextColor, infoPaint);
+    drawInfoText(canvas, infoLocationBitmap, text, 0f, 0f, screenSizeX, lineHeight, infoBackColor, infoPaint);
 
     // draw GPS details
     if (gpsLastLocation != null) {
-      y += lineHeight;
-      int textColor = gpsStatus ? infoTextColor : infoTextAltColor;
-      drawInfoText(canvas, infoSpeedBitmap, infoSpeed, 0f, y, centerX, lineHeight, textColor, infoPaint);
+      int backgroundColor = gpsStatus ? infoBackColor : infoBackAltColor;
+      drawInfoText(canvas, infoSpeedBitmap, infoSpeed, 0f, 0f, centerX, lineHeight, backgroundColor, infoPaint);
       infoPaint.setColor(infoLineColor);
-      canvas.drawLine(centerX, y, centerX, y + lineHeight, infoPaint);
-      drawInfoText(canvas, infoAltitudeBitmap, infoAltitude, centerX, y, centerX, lineHeight, textColor, infoPaint);
+      canvas.drawLine(centerX, 0f, centerX, lineHeight, infoPaint);
+      drawInfoText(canvas, infoAltitudeBitmap, infoAltitude, centerX, 0f, centerX, lineHeight, backgroundColor, infoPaint);
+    }
+    
+    // draw lines
+    infoPaint.setColor(infoLineColor);
+    canvas.drawLine(0f, lineHeight, screenSizeX, lineHeight, infoPaint);
+    if (gpsLastLocation != null) {
+      canvas.drawLine(0f, 2 * lineHeight, screenSizeX, 2 * lineHeight, infoPaint);
+      canvas.drawLine(centerX, lineHeight, centerX, 2 * lineHeight, infoPaint);
     }
   }
 
-  private final void drawInfoText(Canvas canvas, Bitmap bitmap, String text, float x, float y, float width, float height, int textColor, Paint paint) {
+  private final void drawInfoText(Canvas canvas, Bitmap bitmap, String text, float x, float y, float width, float height, int backgroundColor, Paint paint) {
+
+    // draw background
+    paint.setColor(backgroundColor);
+    paint.setStyle(Paint.Style.FILL_AND_STROKE);
+    canvas.drawRect(x, y, x + width, y + height, paint);
+    paint.setStyle(Paint.Style.FILL);
 
     // draw bitmap
     canvas.save();
@@ -518,12 +527,8 @@ public class MapView extends View {
     canvas.restore();
     
     // draw text
-    paint.setColor(textColor);
+    paint.setColor(infoTextColor);
     canvas.drawText(text, x + height + paint.descent(), y - paint.ascent() + 0.5f * (height - paint.getFontSpacing()), paint);
-    
-    // draw line
-    paint.setColor(infoLineColor);
-    canvas.drawLine(x, y + height, x + width, y + height, paint);
   }
   
   private void updateTilesMinMax() {
