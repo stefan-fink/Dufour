@@ -26,16 +26,22 @@ public class TileLoader {
   private static final int LAST_USED_THRESHOLD = 24 * 60 * 60 * 1000;
   
   // the maximum number of tiles to keep on DB
-  private static int MAX_NUMBER_OF_TILES = 800;
+  private static int MAX_NUMBER_OF_TILES = 1000;
   
   // the number of tiles to delete from DB at once
-  private static int DELETE_CHUNK_SIZE = 10;
+  private static int DELETE_CHUNK_SIZE = 25;
   
+  // the listener for finished loads
   private LoadListener loadListener;
-  private Handler handler;
+  
+  // the handler for synchronizing messages from threads 
+  private final Handler handler;
 
-  private DatabaseLoader databaseLoader = new DatabaseLoader();
-  private UrlLoader urlLoader = new UrlLoader();
+  // the database loader with it's own thread
+  private final DatabaseLoader databaseLoader = new DatabaseLoader();
+
+  // the URL loader with it's own thread
+  private final UrlLoader urlLoader = new UrlLoader();
   
   public interface LoadListener {
 
