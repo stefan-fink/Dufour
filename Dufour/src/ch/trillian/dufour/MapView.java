@@ -292,8 +292,7 @@ public class MapView extends View {
         if (gpsLastLocation != null && gpsTracking) {
           
           // calculate screen pixel coordinates of GPS location
-          float[] mapPixel = new float[2];
-          layer.locationToMapPixel(gpsLastLocation, mapPixel);
+          float[] mapPixel = layer.locationToMapPixel(gpsLastLocation);
           float deltaX = map2screen(mapPixel[0], scale, positionX) - centerX;
           float deltaY = map2screen(mapPixel[1], scale, positionY) - centerY;
           float deltaSquare = deltaX * deltaX + deltaY * deltaY;
@@ -415,8 +414,7 @@ public class MapView extends View {
     // draw gps position
     if (gpsLastLocation != null) {
       canvas.save();
-      float[] mapPixel = new float[2]; 
-      layer.locationToMapPixel(gpsLastLocation, mapPixel);
+      float[] mapPixel = layer.locationToMapPixel(gpsLastLocation);
       canvas.translate(mapPixel[0], mapPixel[1]);
       
       if (gpsLastLocation.hasAccuracy()) {
@@ -525,8 +523,7 @@ public class MapView extends View {
     
     Log.w("TRILLIAN", String.format("setLocation: %f, %f", location.getLongitude(), location.getLatitude()));
 
-    float[] mapPixel = new float[2];
-    layer.locationToMapPixel(location, mapPixel);
+    float[] mapPixel = layer.locationToMapPixel(location);
     positionX = centerX / scale - mapPixel[0];
     positionY = centerY / scale - mapPixel[1];
     
@@ -540,7 +537,7 @@ public class MapView extends View {
     float mapPixelX = centerX / scale - positionX;
     float mapPixelY = centerY / scale - positionY;
     
-    Location location = layer.mapPixel2location(mapPixelX, mapPixelY);
+    Location location = layer.mapPixelTolocation(mapPixelX, mapPixelY);
     
     Log.w("TRILLIAN", String.format("getLocation: %f, %f", location.getLongitude(), location.getLatitude()));
 

@@ -64,15 +64,18 @@ public class Layer {
     return new String[] { String.format("%.0f", x), String.format("%.0f", y) };
   }
   
-  public void locationToMapPixel(Location location, float[] mapPixel) {
+  public float[] locationToMapPixel(Location location) {
     
     double[] ch1903 = Ch1903.wgs84toCh1903(location);
 
+    float[] mapPixel = new float[2];
     mapPixel[0] = ((float) ch1903[1] - left) / meterPerPixel;
     mapPixel[1] = (top - (float) ch1903[0]) / meterPerPixel;
+    
+    return mapPixel;
   }
   
-  public Location mapPixel2location(float mapPixelX, float mapPixelY) {
+  public Location mapPixelTolocation(float mapPixelX, float mapPixelY) {
     
     float x = mapPixelX * meterPerPixel + left;
     float y = top - mapPixelY * meterPerPixel;
