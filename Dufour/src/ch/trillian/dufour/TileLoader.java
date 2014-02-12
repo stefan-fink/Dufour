@@ -26,7 +26,7 @@ public class TileLoader {
   private static final int LAST_USED_THRESHOLD = 24 * 60 * 60 * 1000;
   
   // the maximum number of tiles to keep on DB
-  private static int MAX_NUMBER_OF_TILES = 1000;
+  private static int MAX_NUMBER_OF_TILES = 10000;
   
   // the number of tiles to delete from DB at once
   private static int DELETE_CHUNK_SIZE = 25;
