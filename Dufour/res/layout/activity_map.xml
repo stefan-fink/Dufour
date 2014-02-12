@@ -12,16 +12,17 @@
         
         custom:mapGridTextSize="10dp" 
         
-        custom:gpsPosSize="6dp" 
-        custom:gpsPosColor="#FFFFFF00" 
-        custom:gpsPosAltColor="#FF00FFFF" 
+        custom:gpsPosSize="6.5dp" 
+        custom:gpsPosColor="#FFFF0000" 
+        custom:gpsPosAltColor="#FF0000FF" 
         custom:gpsPosBorderColor="#FF000000" 
+        custom:gpsPosAccuracyColor="#60000000" 
         
         custom:infoTextSize="22sp"
         custom:infoTextColor="#FF404040"
-        custom:infoTextAltColor="#FF800000"
         custom:infoLineColor="#FF000000"
         custom:infoBackColor="#90FFFFFF"
+        custom:infoBackAltColor="#20FF0000"
         custom:infoLineStroke="1dp" 
         
         custom:crossSize="14dp" 
