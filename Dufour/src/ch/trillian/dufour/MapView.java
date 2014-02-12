@@ -110,11 +110,11 @@ public class MapView extends View {
     // get attributes
     TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.MapView, 0, 0);
     try {
-      mapGridTextSize = a.getDimensionPixelSize(R.styleable.MapView_mapGridTextSize, 10);
+      mapGridTextSize = a.getDimensionPixelSize(R.styleable.MapView_mapGridTextSize, 50);
       gpsPosSize = a.getDimensionPixelSize(R.styleable.MapView_gpsPosSize, 10);
-      gpsPosColor = a.getDimensionPixelSize(R.styleable.MapView_gpsPosColor, 0xFF000000);
-      gpsPosAltColor = a.getDimensionPixelSize(R.styleable.MapView_gpsPosAltColor, 0xFF000000);
-      gpsPosBorderColor = a.getDimensionPixelSize(R.styleable.MapView_gpsPosBorderColor, 0xFF000000);
+      gpsPosColor = a.getColor(R.styleable.MapView_gpsPosColor, 0xFF000000);
+      gpsPosAltColor = a.getColor(R.styleable.MapView_gpsPosAltColor, 0xFF000000);
+      gpsPosBorderColor = a.getColor(R.styleable.MapView_gpsPosBorderColor, 0xFF000000);
       infoTextSize = a.getDimensionPixelSize(R.styleable.MapView_infoTextSize, 20);
       infoTextColor = a.getColor(R.styleable.MapView_infoTextColor, 0xFF000000);
       infoTextAltColor = a.getColor(R.styleable.MapView_infoTextAltColor, 0xFFFF0000);
