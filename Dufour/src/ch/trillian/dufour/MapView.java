@@ -62,6 +62,7 @@ public class MapView extends View {
   private Bitmap infoLocationBitmap;
   private Bitmap infoSpeedBitmap;
   private Bitmap infoAltitudeBitmap;
+  private Bitmap tileLoadingBitmap;
   
   // screen size in pixel
   private int screenSizeX;
@@ -136,6 +137,7 @@ public class MapView extends View {
     infoLocationBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_info_location);
     infoSpeedBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_info_speed);
     infoAltitudeBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_info_altitude);
+    tileLoadingBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_tile_loading);
     
     // Create our ScaleGestureDetector
     mScaleGestureDetector = new ScaleGestureDetector(context, new ScaleListener());
@@ -410,6 +412,8 @@ public class MapView extends View {
             Bitmap bitmap = tile.getBitmap();
             if (bitmap != null) {
               canvas.drawBitmap(bitmap, x, y, mapPaint);
+            } else {
+              canvas.drawBitmap(tileLoadingBitmap, x + (incX - tileLoadingBitmap.getWidth()) / 2, y + (incY - tileLoadingBitmap.getHeight()) / 2, mapPaint);
             }
           }
         }
