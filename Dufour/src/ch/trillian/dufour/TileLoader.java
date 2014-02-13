@@ -38,10 +38,10 @@ public class TileLoader {
   private final Handler handler;
 
   // the database loader with it's own thread
-  private final DatabaseLoader databaseLoader = new DatabaseLoader();
+  private DatabaseLoader databaseLoader;
 
   // the URL loader with it's own thread
-  private final UrlLoader urlLoader = new UrlLoader();
+  private UrlLoader urlLoader;
   
   public interface LoadListener {
 
@@ -76,12 +76,26 @@ public class TileLoader {
     MapDatabase.newInstance(context);
     
     handler = new LoaderHandler(this);
+    databaseLoader = new DatabaseLoader();
+    urlLoader = new UrlLoader();
   }
 
-  public void stopThreads() {
+  public void onPause() {
 
-    databaseLoader.shutdown();
-    urlLoader.shutdown();
+    databaseLoader.onPause();
+    urlLoader.onPause();
+  }
+  
+  public void onResume() {
+
+    databaseLoader.onResume();
+    urlLoader.onResume();
+  }
+  
+  public void onDestroy() {
+
+    databaseLoader.onDestroy();
+    urlLoader.onDestroy();
   }
   
   public void setLoadListener(LoadListener loadListener) {
@@ -102,14 +116,37 @@ public class TileLoader {
 
   private class DatabaseLoader implements Runnable {
   
-    private boolean shutdown;
+    private boolean pause;
+    private boolean destroy;
     private Thread thread;
     private ArrayDeque<Tile> queue = new ArrayDeque<Tile>();
     
-    public void shutdown() {
+    public DatabaseLoader() {
       
-      shutdown = true;
+      thread = new Thread(this);
+      thread.start();
+    }
+    
+    public void onPause() {
+      
       synchronized (queue) {
+        pause = true;
+        queue.notify();
+      }
+    }
+    
+    public void onResume() {
+      
+      synchronized (queue) {
+        pause = false;
+        queue.notify();
+      }
+    }
+    
+    public void onDestroy() {
+      
+      synchronized (queue) {
+        destroy = true;
         queue.notify();
       }
     }
@@ -121,12 +158,6 @@ public class TileLoader {
         // put tile in order queue
         queue.offer(tile);
 
-        // (re)start thread
-        if (thread == null) {
-          thread = new Thread(this);
-          thread.start();
-        }
-        
         if (queue.size() == 1) {
           queue.notify();
         }
@@ -153,17 +184,24 @@ public class TileLoader {
         
         while (true) {
   
-          if (shutdown) {
-            break;
-          }
-          
           Tile tile = null;
   
           synchronized (queue) {
-            if ((tile = queue.poll()) == null) {
-              Log.i(TAG, "DatabaseThread going to sleep (loaded " + numTiles + " tiles).");
+            
+            if (destroy) {
+              break;
+            }
+            
+            if (pause) {
+              Log.i(TAG, "DatabaseThread paused (loaded " + numTiles + " tiles).");
               queue.wait();
-              Log.i(TAG, "DatabaseThread woke up.");
+              numTiles = 0;
+              continue;
+            }
+            
+            if ((tile = queue.poll()) == null) {
+              Log.i(TAG, "DatabaseThread waiting (loaded " + numTiles + " tiles).");
+              queue.wait();
               numTiles = 0;
               continue;
             }
@@ -183,11 +221,7 @@ public class TileLoader {
       }
       
       database.closeDatabase();
-      synchronized (queue) {
-        shutdown = false;
-        queue.clear();
-        thread = null;
-      }
+
       Log.i(TAG, "DatabaseThread has been shut down.");
     }
     
@@ -214,14 +248,37 @@ public class TileLoader {
   
   private class UrlLoader implements Runnable {
     
-    private boolean shutdown;
+    private boolean pause;
+    private boolean destroy;
     private Thread thread;
     private ArrayDeque<Tile> queue = new ArrayDeque<Tile>();
     
-    public void shutdown() {
+    public UrlLoader() {
       
-      shutdown = true;
+      thread = new Thread(this);
+      thread.start();
+    }
+    
+    public void onPause() {
+      
       synchronized (queue) {
+        pause = true;
+        queue.notify();
+      }
+    }
+    
+    public void onDestroy() {
+      
+      synchronized (queue) {
+        destroy = true;
+        queue.notify();
+      }
+    }
+    
+    public void onResume() {
+      
+      synchronized (queue) {
+        pause = false;
         queue.notify();
       }
     }
@@ -265,17 +322,24 @@ public class TileLoader {
         
         while (true) {
   
-          if (shutdown) {
-            break;
-          }
-          
           Tile tile = null;
   
           synchronized (queue) {
-            if ((tile = queue.poll()) == null) {
-              Log.i(TAG, "DownloadThread going to sleep (downloaded " + numTiles + " tiles).");
+            
+            if (destroy) {
+              break;
+            }
+            
+            if (pause) {
+              Log.i(TAG, "DownloadThread paused (downloaded " + numTiles + " tiles).");
               queue.wait();
-              Log.i(TAG, "DownloadThread woke up.");
+              numTiles = 0;
+              continue;
+            }
+            
+            if ((tile = queue.poll()) == null) {
+              Log.i(TAG, "DownloadThread waiting (downloaded " + numTiles + " tiles).");
+              queue.wait();
               numTiles = 0;
               continue;
             }
@@ -291,11 +355,7 @@ public class TileLoader {
       }
       
       database.closeDatabase();
-      synchronized (queue) {
-        shutdown = false;
-        queue.clear();
-        thread = null;
-      }
+      
       Log.i(TAG, "DownloadThread has been shut down.");
     }
     
@@ -314,9 +374,6 @@ public class TileLoader {
         byte[] block = new byte[16384];
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         while ((numRead = inputStream.read(block, 0, block.length)) != -1) {
-          if (shutdown) {
-            return false;
-          }
           buffer.write(block, 0, numRead);
         }
         inputStream.close();

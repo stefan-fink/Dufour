@@ -100,7 +100,7 @@ public class MapActivity extends Activity {
     gpsWasTracking = mapView.isGpsTracking();
     setGpsEnabled(false);
 
-    tileLoader.stopThreads();
+    tileLoader.onPause();
 
     super.onPause();
   }
@@ -112,10 +112,22 @@ public class MapActivity extends Activity {
     
     super.onResume();
 
+    tileLoader.onResume();
+
     startTimer();
     
     setGpsEnabled(gpsWasEnabled);
     setGpsTracking(gpsWasTracking);
+  }
+  
+  @Override
+  protected void onDestroy() {
+
+    Log.w("TRILLIAN", "onDestroy()");
+    
+    tileLoader.onDestroy();
+
+    super.onDestroy();
   }
 
   @Override

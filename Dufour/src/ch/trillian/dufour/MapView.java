@@ -467,17 +467,6 @@ public class MapView extends View {
     canvas.restore();
   }
 
-  private final void drawCross(Canvas canvas) {
-    
-    // draw cross
-    canvas.save();
-    canvas.translate(centerX, centerY);
-    canvas.drawCircle(0, 0, crossSize, crossPaint);
-    canvas.drawLine(-crossSize, 0, crossSize, 0, crossPaint);
-    canvas.drawLine(0, -crossSize, 0, crossSize, crossPaint);
-    canvas.restore();
-  }
-
   @SuppressLint("DefaultLocale")
   private final void drawInfo(Canvas canvas) {
     
@@ -531,6 +520,17 @@ public class MapView extends View {
     canvas.drawText(text, x + height + paint.descent(), y - paint.ascent() + 0.5f * (height - paint.getFontSpacing()), paint);
   }
   
+  private final void drawCross(Canvas canvas) {
+    
+    // draw cross
+    canvas.save();
+    canvas.translate(centerX, centerY);
+    canvas.drawCircle(0, 0, crossSize, crossPaint);
+    canvas.drawLine(-crossSize, 0, crossSize, 0, crossPaint);
+    canvas.drawLine(0, -crossSize, 0, crossSize, crossPaint);
+    canvas.restore();
+  }
+
   private void updateTilesMinMax() {
     
     // calculate new tile-region
