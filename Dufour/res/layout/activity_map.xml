@@ -11,6 +11,8 @@
         android:layout_height="match_parent"
         
         custom:mapGridTextSize="10dp" 
+        custom:mapGridDrawCoordinates="false"
+        custom:mapGridNoDataText="@string/grid_no_data"
         
         custom:gpsPosSize="6.5dp" 
         custom:gpsPosColor="#FFFF0000" 

@@ -40,6 +40,8 @@ public class MapView extends View {
   
   // attributes
   private int mapGridTextSize;
+  private boolean mapGridDrawCoordinates;
+  private String mapGridNoDataText;
   private int gpsPosSize;
   private int gpsPosColor;
   private int gpsPosAltColor;
@@ -116,6 +118,8 @@ public class MapView extends View {
     TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.MapView, 0, 0);
     try {
       mapGridTextSize = a.getDimensionPixelSize(R.styleable.MapView_mapGridTextSize, 50);
+      mapGridDrawCoordinates = a.getBoolean(R.styleable.MapView_mapGridDrawCoordinates, false);
+      mapGridNoDataText = a.getString(R.styleable.MapView_mapGridNoDataText);
       gpsPosSize = a.getDimensionPixelSize(R.styleable.MapView_gpsPosSize, 10);
       gpsPosColor = a.getColor(R.styleable.MapView_gpsPosColor, 0xFF000000);
       gpsPosAltColor = a.getColor(R.styleable.MapView_gpsPosAltColor, 0xFF000000);
@@ -428,12 +432,19 @@ public class MapView extends View {
     }
     
     // draw grid coordinates
+    float textVerticalOffset = (mapPaint.descent() - mapPaint.ascent()) / 2 - mapPaint.descent();
     x = minX + incX / 2;
     for(int i = minTileX; i <= maxTileX; i++) {
-      y = minY + incY / 2 + mapPaint.getTextSize() / 2;
+      y = minY + incY / 2;
       for(int j = minTileY; j <= maxTileY; j++) {
-        String text = layer.hasTile(i, j) ? "(" + i + "," + j + ")" : "no data";
-        canvas.drawText(text, x, y, mapPaint);
+        boolean hasTile = layer.hasTile(i, j);
+        if (!hasTile || mapGridDrawCoordinates) {
+          String text = layer.hasTile(i, j) ? "(" + i + "," + j + ")" : mapGridNoDataText;
+          canvas.save();
+          canvas.rotate(-45f, x, y);
+          canvas.drawText(text, x, y + textVerticalOffset, mapPaint);
+          canvas.restore();
+        }
         y += incY;
       }
       x += incX;

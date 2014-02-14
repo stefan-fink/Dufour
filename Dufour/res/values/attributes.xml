@@ -3,7 +3,9 @@
     <declare-styleable name="MapView">
         
         <attr name="mapGridTextSize" format="dimension" />
- 
+        <attr name="mapGridDrawCoordinates" format="boolean" />
+        <attr name="mapGridNoDataText" format="string" />
+        
         <attr name="gpsPosSize" format="dimension" />
         <attr name="gpsPosColor" format="color"/>
         <attr name="gpsPosAltColor" format="color"/>

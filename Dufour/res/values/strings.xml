@@ -8,4 +8,7 @@
     <string name="action_gps">GPS</string>
     <string name="action_info">Info</string>
     
+    <!-- Views -->
+    <string name="grid_no_data">no data</string>
+    
 </resources>
