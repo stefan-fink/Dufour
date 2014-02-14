@@ -22,7 +22,7 @@
         custom:infoTextColor="#FF404040"
         custom:infoLineColor="#FF000000"
         custom:infoBackColor="#A0FFFFFF"
-        custom:infoBackAltColor="#50CC0000"
+        custom:infoBackAltColor="#A0FFBBBB"
         custom:infoLineStroke="1dp" 
         
         custom:crossSize="14dp" 
