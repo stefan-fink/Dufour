@@ -393,9 +393,12 @@ public class TileLoader {
 
       } catch (Exception e) {
         Log.w(TAG, "Exception: " + e.getMessage(), e);
-        handler.obtainMessage(LOAD_FAILED, tile).sendToTarget();
       }
 
+      // download failed
+      tile.setLoadFailed(true);
+      handler.obtainMessage(LOAD_FAILED, tile).sendToTarget();
+      
       return false;
     }
     

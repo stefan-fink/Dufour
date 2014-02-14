@@ -8,9 +8,10 @@ public class Tile {
   private final Layer layer; 
   private final int x;
   private final int y;
-  private long lastUsed;
+  private boolean loadFailed;
+  
   private Bitmap bitmap;
-  private int state;
+  private long lastUsed;
   
   public Tile(Layer layer, int x, int y) {
     
@@ -43,7 +44,7 @@ public class Tile {
   }
 
   public boolean isLoading() {
-    return bitmap == null;
+    return  !loadFailed && bitmap == null;
   }
 
   public Bitmap getBitmap() {
@@ -62,11 +63,11 @@ public class Tile {
     this.lastUsed = lastUsed;
   }
 
-  public int getState() {
-    return state;
+  public boolean isLoadFailed() {
+    return loadFailed;
   }
 
-  public void setState(int state) {
-    this.state = state;
+  public void setLoadFailed(boolean loadFailed) {
+    this.loadFailed = loadFailed;
   }
 }
