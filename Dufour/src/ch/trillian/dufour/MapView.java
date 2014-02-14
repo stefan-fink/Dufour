@@ -17,6 +17,8 @@ import android.view.View;
 
 public class MapView extends View {
 
+  private static final int GPS_OUTDATE_INTERVAL = 10 * 1000;
+
   public interface ViewListener {
     
     public void onSizeChanged(int w, int h, int oldw, int oldh);
@@ -610,12 +612,13 @@ public class MapView extends View {
     infoSpeed = gpsLastLocation.hasSpeed() ? String.format("%.1f km/h", gpsLastLocation.getSpeed() * 3.6f) : "- km/h";
     infoAltitude  = gpsLastLocation.hasAltitude() ? String.format("%.0f m", ch1903[2]) : "- km/h";
 
-
     // center map to gps position if we're tracking
     if (gpsTracking) {
       setLocation(gpsLastLocation);
     }
 
+    updateGpsStatus();
+    
     invalidate();
   }
 
@@ -645,11 +648,22 @@ public class MapView extends View {
     
     return gpsTracking;
   }
-  
-  public void setGpsStatus(boolean gpsStatus) {
+
+  public void updateGpsStatus() {
     
-    this.gpsStatus = gpsStatus;
-    invalidate();
+    // check if GPS location is out-dated
+    if (gpsLastLocation != null) {
+      boolean newGpsStatus = System.currentTimeMillis() - gpsLastLocation.getTime() < GPS_OUTDATE_INTERVAL;
+      if (newGpsStatus != gpsStatus) {
+        gpsStatus = newGpsStatus;
+        invalidate();
+      }
+    }
+  }
+  
+  public void onTick() {
+
+    updateGpsStatus();
   }
   
   public Layer getLayer() {

@@ -32,8 +32,8 @@ public class MapActivity extends Activity {
   private static final int ZOOM_REPEAT_SLOWDOWN = 3;
   
   // constants for GPS updates
-  private static final int GPS_UPDATE_INTERVAL = 1000;
-  private static final int GPS_OUTDATE_INTERVAL = 10 * GPS_UPDATE_INTERVAL;
+  private static final int GPS_MIN_INTERVAL = 1000;
+  private static final int GPS_MIN_DISTANCE = 0;
   
   private final Map map = createMap();
   private MapView mapView;
@@ -308,7 +308,7 @@ public class MapActivity extends Activity {
     
     // start or stop listening to GPS updates
     if (enable) {
-      locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPS_UPDATE_INTERVAL, 1, locationListener);
+      locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPS_MIN_INTERVAL, GPS_MIN_DISTANCE, locationListener);
       location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
     } else {
       locationManager.removeUpdates(locationListener);
@@ -324,7 +324,6 @@ public class MapActivity extends Activity {
     
     mapView.setGpsEnabled(enable);
     mapView.setGpsLocation(location);
-    mapView.setGpsStatus(false);
   }
   
   private final LocationListener locationListener = new LocationListener() {
@@ -345,7 +344,6 @@ public class MapActivity extends Activity {
     public void onLocationChanged(Location location) {
 
       mapView.setGpsLocation(location);
-      mapView.setGpsStatus(true);
     }
   };
   
@@ -373,14 +371,8 @@ public class MapActivity extends Activity {
   public Handler timerHandler = new Handler() {
     
     public void handleMessage(Message message) {
-        
-      // check if GPS location is out-dated
-      Location gpsLastLocation = mapView.getGpsLocation();
-      if (gpsLastLocation != null) {
-        if (System.currentTimeMillis() - gpsLastLocation.getTime() > GPS_OUTDATE_INTERVAL) {
-          mapView.setGpsStatus(false);
-        }
-      }
+
+      mapView.onTick();
     }
   };
 }
