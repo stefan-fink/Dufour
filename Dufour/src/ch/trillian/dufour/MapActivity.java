@@ -15,6 +15,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.location.LocationProvider;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -57,6 +58,9 @@ public class MapActivity extends Activity {
   // our optionMenu
   private Menu optionMenu;
 
+  // the search view
+  private SearchView searchView;
+  
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     
@@ -150,7 +154,7 @@ public class MapActivity extends Activity {
 
     // Get the SearchView and set the searchable configuration
     SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-    SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+    searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
     searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
     searchView.setIconifiedByDefault(true);
 
@@ -199,6 +203,21 @@ public class MapActivity extends Activity {
       } catch (Exception e) {
         Log.i("TRILLIAN", "onNewIntent() getFromLocationName failed: " + e.getMessage());
       }
+    } else if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+      
+      Log.i("TRILLIAN", "onNewIntent() ACTION_VIEW: ");
+      Uri uri = intent.getData();
+      if (uri != null) {
+        try {
+          Location location = new Location("Geocoder");
+          location.setLongitude(Double.valueOf(uri.getQueryParameter("longitude")));
+          location.setLatitude(Double.valueOf(uri.getQueryParameter("latitude")));
+          mapView.setLocation(location);
+        } catch (NumberFormatException e) {
+          Log.e("TRILLIAN", "Exception when parsing uri in ACTION_VIEW: " + e.getMessage());
+        }
+      }
+
     }
 //    if (ContactsContract.Intents.SEARCH_SUGGESTION_CLICKED.equals(intent.getAction())) {
 //      //handles suggestion clicked query
