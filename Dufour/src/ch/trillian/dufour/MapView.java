@@ -506,7 +506,6 @@ public class MapView extends View {
       int backgroundColor = gpsStatus ? infoBackColor : infoBackAltColor;
       drawInfoText(canvas, infoSpeedBitmap, infoSpeed, 0f, lineHeight, centerX, lineHeight, backgroundColor, infoPaint);
       infoPaint.setColor(infoLineColor);
-      canvas.drawLine(centerX, 0f, centerX, lineHeight, infoPaint);
       drawInfoText(canvas, infoAltitudeBitmap, infoAltitude, centerX, lineHeight, centerX, lineHeight, backgroundColor, infoPaint);
     }
     
