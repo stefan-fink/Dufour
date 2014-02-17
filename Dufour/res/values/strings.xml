@@ -5,10 +5,14 @@
     <string name="action_settings">Settings</string>
 
     <!-- Actions -->
-    <string name="action_gps">GPS</string>
+    <string name="action_search">Search</string>
     <string name="action_info">Info</string>
+    <string name="action_gps">GPS</string>
     
     <!-- Views -->
     <string name="grid_no_data">no data</string>
+    
+    <!-- Search strings -->
+    <string name="search_hint">Search address</string>
     
 </resources>

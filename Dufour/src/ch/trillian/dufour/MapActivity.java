@@ -1,14 +1,20 @@
 package ch.trillian.dufour;
 
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.SearchManager;
 import android.content.Context;
+import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -16,6 +22,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.SearchView;
 
 public class MapActivity extends Activity {
 
@@ -55,6 +62,8 @@ public class MapActivity extends Activity {
     
     super.onCreate(savedInstanceState);
 
+    Log.i("TRILLIAN", "onCreate()");
+    
     // initialize loader
     tileLoader = new TileLoader(this);
     tileLoader.setLoadListener(new LoadListener());
@@ -138,6 +147,13 @@ public class MapActivity extends Activity {
     setGpsEnabled(gpsWasEnabled);
     setGpsTracking(gpsWasTracking);
     setShowInfo(showInfo);
+
+    // Get the SearchView and set the searchable configuration
+    SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+    SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+    searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+    searchView.setIconifiedByDefault(true);
+
     return true;
   }
 
@@ -158,7 +174,42 @@ public class MapActivity extends Activity {
     
     return super.onOptionsItemSelected(item);
   }
+  
+  @Override
+  protected void onNewIntent(Intent intent) {
 
+    Log.i("TRILLIAN", "onNewIntent() " + intent.toString());
+    
+    if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+      String query = intent.getStringExtra(SearchManager.QUERY);
+      Log.i("TRILLIAN", "onNewIntent() query=" + query);
+      Geocoder geocoder = new Geocoder(this);
+      try {
+        List<Address> addressList = geocoder.getFromLocationName(query, 10);
+        for (Address address : addressList) {
+          Log.i("TRILLIAN", "onNewIntent() address=" + address.getPostalCode() + " " + address.getLocality());
+        }
+        if (addressList.size() > 0) {
+          Address address = addressList.get(0);
+          Location location = new Location("Geocoder");
+          location.setLongitude(address.getLongitude());
+          location.setLatitude(address.getLatitude());
+          mapView.setLocation(location);
+        }
+      } catch (Exception e) {
+        Log.i("TRILLIAN", "onNewIntent() getFromLocationName failed: " + e.getMessage());
+      }
+    }
+//    if (ContactsContract.Intents.SEARCH_SUGGESTION_CLICKED.equals(intent.getAction())) {
+//      //handles suggestion clicked query
+//      String displayName = getDisplayNameForContact(intent);
+//      resultText.setText(displayName);
+//    } else if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+//      // handles a search query
+//      String query = intent.getStringExtra(SearchManager.QUERY);
+//      resultText.setText("should search for query: '" + query + "'...");
+//    }
+  }
   @Override
   public boolean dispatchKeyEvent(KeyEvent event) {
 
