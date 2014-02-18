@@ -586,8 +586,6 @@ public class MapView extends View {
     positionX = centerX / scale - mapPixel[0];
     positionY = centerY / scale - mapPixel[1];
     
-    getLocation();
-    
     invalidate();
   }
 

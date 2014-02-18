@@ -14,7 +14,6 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.location.LocationProvider;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -103,25 +102,11 @@ public class MapActivity extends Activity {
   }
 
   @Override
-  protected void onPause() {
+  protected void onStart() {
 
-    Log.w("TRILLIAN", "onPause()");
-
-    stopTimer();
-
-    gpsWasEnabled = mapView.isGpsEnabled();
-    gpsWasTracking = mapView.isGpsTracking();
-    setGpsEnabled(false);
-
-    tileLoader.onPause();
-
-    super.onPause();
-  }
-
-  @Override
-  protected void onResume() {
-
-    Log.w("TRILLIAN", "onResume()");
+    super.onStart();
+    
+    Log.w("TRILLIAN", "onStart()");
     
     super.onResume();
 
@@ -132,7 +117,35 @@ public class MapActivity extends Activity {
     setGpsEnabled(gpsWasEnabled);
     setGpsTracking(gpsWasTracking);
   }
+
+  @Override
+  protected void onStop() {
+
+    Log.w("TRILLIAN", "onStop()");
+
+    stopTimer();
+
+    gpsWasEnabled = mapView.isGpsEnabled();
+    gpsWasTracking = mapView.isGpsTracking();
+    setGpsEnabled(false);
+
+    tileLoader.onPause();
+
+    super.onStop();
+  }
+
+  @Override
+  protected void onResume() {
+
+    super.onResume();
+  }
   
+  @Override
+  protected void onPause() {
+
+    super.onPause();
+  }
+
   @Override
   protected void onDestroy() {
 
@@ -183,8 +196,11 @@ public class MapActivity extends Activity {
   protected void onNewIntent(Intent intent) {
 
     Log.i("TRILLIAN", "onNewIntent() " + intent.toString());
-    
+
     if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+      
+      optionMenu.findItem(R.id.action_search).collapseActionView();
+
       String query = intent.getStringExtra(SearchManager.QUERY);
       Log.i("TRILLIAN", "onNewIntent() query=" + query);
       Geocoder geocoder = new Geocoder(this);
@@ -199,6 +215,7 @@ public class MapActivity extends Activity {
           location.setLongitude(address.getLongitude());
           location.setLatitude(address.getLatitude());
           mapView.setLocation(location);
+          mapView.setGpsTracking(false);
         }
       } catch (Exception e) {
         Log.i("TRILLIAN", "onNewIntent() getFromLocationName failed: " + e.getMessage());
@@ -213,22 +230,15 @@ public class MapActivity extends Activity {
           location.setLongitude(Double.valueOf(uri.getQueryParameter("longitude")));
           location.setLatitude(Double.valueOf(uri.getQueryParameter("latitude")));
           mapView.setLocation(location);
+          mapView.setGpsTracking(false);
         } catch (NumberFormatException e) {
           Log.e("TRILLIAN", "Exception when parsing uri in ACTION_VIEW: " + e.getMessage());
         }
       }
 
     }
-//    if (ContactsContract.Intents.SEARCH_SUGGESTION_CLICKED.equals(intent.getAction())) {
-//      //handles suggestion clicked query
-//      String displayName = getDisplayNameForContact(intent);
-//      resultText.setText(displayName);
-//    } else if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-//      // handles a search query
-//      String query = intent.getStringExtra(SearchManager.QUERY);
-//      resultText.setText("should search for query: '" + query + "'...");
-//    }
   }
+  
   @Override
   public boolean dispatchKeyEvent(KeyEvent event) {
 
