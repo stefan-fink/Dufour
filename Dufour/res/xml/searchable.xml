@@ -5,6 +5,6 @@
     android:hint="@string/search_hint"
     android:searchSuggestAuthority="ch.trillian.dufour.geocoder" 
     android:searchSuggestIntentAction="android.intent.action.VIEW"
-    android:searchSuggestThreshold="3" >
+    android:searchSuggestThreshold="2" >
     
 </searchable>
