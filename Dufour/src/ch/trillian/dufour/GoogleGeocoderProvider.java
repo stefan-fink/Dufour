@@ -12,7 +12,7 @@ import android.location.Geocoder;
 import android.net.Uri;
 import android.util.Log;
 
-public class GeocoderProvider extends ContentProvider {
+public class GoogleGeocoderProvider extends ContentProvider {
 
   private static final String TAG = "GEOCODER";
   

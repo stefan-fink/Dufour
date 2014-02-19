@@ -38,7 +38,7 @@
         </activity>
 
         <provider
-            android:name=".GeocoderProvider"
+            android:name=".SwissGeocoderProvider"
             android:authorities="ch.trillian.dufour.geocoder"
             android:exported="false" />
     </application>
