@@ -232,6 +232,7 @@ public class MapActivity extends Activity {
           location.setLongitude(Double.valueOf(uri.getQueryParameter("longitude")));
           location.setLatitude(Double.valueOf(uri.getQueryParameter("latitude")));
           mapView.setLocation(location);
+          mapView.setPoiLocation(location);
           mapView.setGpsTracking(false);
         } catch (NumberFormatException e) {
           Log.e("TRILLIAN", "Exception when parsing uri in ACTION_VIEW: " + e.getMessage());

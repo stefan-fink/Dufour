@@ -39,26 +39,32 @@ public class MapView extends View {
   private Layer layer;
   
   // attributes
-  private int mapGridTextSize;
+  private float mapGridTextSize;
   private boolean mapGridDrawCoordinates;
   private String mapGridNoDataText;
-  private int gpsPosSize;
+  private float poiPosSize;
+  private int poiPosColor;
+  private int poiPosBorderColor;
+  private float poiPosBorderStroke;
+  private float gpsPosSize;
   private int gpsPosColor;
   private int gpsPosAltColor;
   private int gpsPosBorderColor;
+  private float gpsPosBorderStroke;
   private int gpsPosAccuracyColor;
-  private int infoTextSize;
+  private float infoTextSize;
   private int infoTextColor;
   private int infoLineColor;
   private int infoBackColor;
   private int infoBackAltColor;
-  private int infoLineStroke;
-  private int crossSize;
-  private int crossStroke;
+  private float infoLineStroke;
+  private float crossSize;
+  private float crossStroke;
 
   // painters and paths
   private Paint mapPaint;
   private Paint gpsPaint;
+  private Paint poiPaint;
   private Paint infoPaint;
   private Paint crossPaint;
 
@@ -107,6 +113,9 @@ public class MapView extends View {
   private String infoSpeed = "?";
   private String infoAltitude = "?";
   
+  // POI
+  private Location poiLocation;
+  
   // true if info is displayed
   private boolean showInfo;
 
@@ -117,22 +126,27 @@ public class MapView extends View {
     // get attributes
     TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.MapView, 0, 0);
     try {
-      mapGridTextSize = a.getDimensionPixelSize(R.styleable.MapView_mapGridTextSize, 50);
+      mapGridTextSize = a.getDimension(R.styleable.MapView_mapGridTextSize, 50f);
       mapGridDrawCoordinates = a.getBoolean(R.styleable.MapView_mapGridDrawCoordinates, false);
       mapGridNoDataText = a.getString(R.styleable.MapView_mapGridNoDataText);
-      gpsPosSize = a.getDimensionPixelSize(R.styleable.MapView_gpsPosSize, 10);
+      poiPosSize = a.getDimension(R.styleable.MapView_poiPosSize, 10f);
+      poiPosColor = a.getColor(R.styleable.MapView_poiPosColor, 0xFF000000);
+      poiPosBorderColor = a.getColor(R.styleable.MapView_poiPosBorderColor, 0xFF000000);
+      poiPosBorderStroke = a.getDimension(R.styleable.MapView_poiPosBorderStroke, 2f);
+      gpsPosSize = a.getDimension(R.styleable.MapView_gpsPosSize, 10f);
       gpsPosColor = a.getColor(R.styleable.MapView_gpsPosColor, 0xFF000000);
       gpsPosAltColor = a.getColor(R.styleable.MapView_gpsPosAltColor, 0xFF000000);
       gpsPosBorderColor = a.getColor(R.styleable.MapView_gpsPosBorderColor, 0xFF000000);
+      gpsPosBorderStroke = a.getDimension(R.styleable.MapView_poiPosBorderStroke, 2f);
       gpsPosAccuracyColor = a.getColor(R.styleable.MapView_gpsPosAccuracyColor, 0x50000000);
-      infoTextSize = a.getDimensionPixelSize(R.styleable.MapView_infoTextSize, 20);
+      infoTextSize = a.getDimension(R.styleable.MapView_infoTextSize, 20f);
       infoTextColor = a.getColor(R.styleable.MapView_infoTextColor, 0xFF000000);
       infoLineColor = a.getColor(R.styleable.MapView_infoLineColor, 0xFF000000);
       infoBackColor = a.getColor(R.styleable.MapView_infoBackColor, 0x80FFFFFF);
       infoBackAltColor = a.getColor(R.styleable.MapView_infoBackAltColor, 0x80FF0000);
-      infoLineStroke = a.getDimensionPixelSize(R.styleable.MapView_infoLineStroke, 1);
-      crossSize = a.getDimensionPixelSize(R.styleable.MapView_crossSize, 10);
-      crossStroke = a.getDimensionPixelSize(R.styleable.MapView_crossStroke, 1);
+      infoLineStroke = a.getDimension(R.styleable.MapView_infoLineStroke, 1f);
+      crossSize = a.getDimension(R.styleable.MapView_crossSize, 10f);
+      crossStroke = a.getDimension(R.styleable.MapView_crossStroke, 1f);
     } finally {
       a.recycle();
     }
@@ -161,6 +175,10 @@ public class MapView extends View {
     mapPaint.setTextAlign(Paint.Align.CENTER);
 
     gpsPaint = new Paint(0);
+    gpsPaint.setStrokeWidth(gpsPosBorderStroke);
+    
+    poiPaint = new Paint(0);
+    poiPaint.setStrokeWidth(poiPosBorderStroke);
 
     infoPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     infoPaint.setTextAlign(Paint.Align.LEFT);
@@ -386,6 +404,8 @@ public class MapView extends View {
     
     drawMap(canvas);
     
+    drawPoiPosition(canvas);
+    
     drawGpsPosition(canvas);
     
     drawInfo(canvas);
@@ -449,6 +469,32 @@ public class MapView extends View {
       }
       x += incX;
     }
+    
+    canvas.restore();
+  }
+
+  private final void drawPoiPosition(Canvas canvas) {
+    
+    if (poiLocation == null) {
+      return;
+    }
+      
+    // get coordinates of POI position in screen pixels
+    float[] mapPixel = layer.locationToMapPixel(poiLocation);
+    float x = map2screen(mapPixel[0], scale, positionX);
+    float y = map2screen(mapPixel[1], scale, positionY);
+    
+    // prepare canvas
+    canvas.save();
+    canvas.translate(x, y);
+
+    // draw colored dot
+    poiPaint.setColor(poiPosColor);
+    poiPaint.setStyle(Paint.Style.FILL);
+    canvas.drawCircle(0, 0, poiPosSize, poiPaint);
+    poiPaint.setStyle(Paint.Style.STROKE);
+    poiPaint.setColor(poiPosBorderColor);
+    canvas.drawCircle(0, 0, poiPosSize, poiPaint);
     
     canvas.restore();
   }
@@ -599,6 +645,24 @@ public class MapView extends View {
     Log.w("TRILLIAN", String.format("getLocation: %f, %f", location.getLongitude(), location.getLatitude()));
 
     return location;
+  }
+
+  public void setPoiLocation(Location location) {
+
+    if (location == null) {
+      return;
+    }
+    
+    Log.w("TRILLIAN", String.format("setPoiLocation: %f, %f", location.getLongitude(), location.getLatitude()));
+
+    poiLocation = location;
+    
+    invalidate();
+  }
+
+  public Location getPoiLocation() {
+
+    return poiLocation;
   }
 
   public Location getGpsLocation() {
