@@ -642,18 +642,10 @@ public class MapView extends View {
     
     Location location = layer.mapPixelTolocation(mapPixelX, mapPixelY);
     
-    Log.w("TRILLIAN", String.format("getLocation: %f, %f", location.getLongitude(), location.getLatitude()));
-
     return location;
   }
 
   public void setPoiLocation(Location location) {
-
-    if (location == null) {
-      return;
-    }
-    
-    Log.w("TRILLIAN", String.format("setPoiLocation: %f, %f", location.getLongitude(), location.getLatitude()));
 
     poiLocation = location;
     
