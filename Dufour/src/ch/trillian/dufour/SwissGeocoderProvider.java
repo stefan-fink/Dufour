@@ -61,17 +61,11 @@ public class SwissGeocoderProvider extends ContentProvider {
     
     MatrixCursor cursor = new MatrixCursor(new String[] {"_ID", SearchManager.SUGGEST_COLUMN_TEXT_1, SearchManager.SUGGEST_COLUMN_TEXT_2, SearchManager.SUGGEST_COLUMN_INTENT_DATA });
     
-    try {
-      
-      // get list of matching addresses
+    // get list of matching addresses
       String response = requestAddresses(query);
       
-      // convert to cursor
-      parseResponse(response, cursor);
-      
-    } catch (Exception e) {
-      Log.i(TAG, "query() getFromLocationName failed: " + e.getMessage());
-    }
+    // convert to cursor
+    parseResponse(response, cursor);
     
     return cursor;
   }
