@@ -222,6 +222,8 @@ public class MapActivity extends Activity {
       }
     } else if (Intent.ACTION_VIEW.equals(intent.getAction())) {
       
+      optionMenu.findItem(R.id.action_search).collapseActionView();
+
       Log.i("TRILLIAN", "onNewIntent() ACTION_VIEW: ");
       Uri uri = intent.getData();
       if (uri != null) {
