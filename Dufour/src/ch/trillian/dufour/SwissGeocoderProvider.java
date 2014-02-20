@@ -90,10 +90,12 @@ public class SwissGeocoderProvider extends ContentProvider {
 
       // loop over all locations in response
       for (int i = 0; i < locations.length(); i++) {
+        
         try {
           
           // parse location
           JSONObject location = locations.getJSONObject(i);
+          
           JSONObject attributes = location.getJSONObject("attrs");
           String origin = attributes.getString("origin");
           String box = attributes.getString("geom_st_box2d");
@@ -106,38 +108,30 @@ public class SwissGeocoderProvider extends ContentProvider {
           String[] coordinates = box.split(" ");
 
           if (!"sn25".equals(origin) && !"address".equals(origin)) {
-            Log.w(TAG, "skipped " + label);
             continue;
           }
           
-          Log.i(TAG, "found " + label);
-          
-          try {
-            double x = (Double.valueOf(coordinates[0]) + Double.valueOf(coordinates[2])) / 2d;
-            double y = (Double.valueOf(coordinates[1]) + Double.valueOf(coordinates[3])) / 2d;
-            double[] wgs84 = Ch1903.ch1903toWgs84to(x, y, 0);
+          // get mean value of bounding box
+          double x = (Double.valueOf(coordinates[0]) + Double.valueOf(coordinates[2])) / 2d;
+          double y = (Double.valueOf(coordinates[1]) + Double.valueOf(coordinates[3])) / 2d;
+          double[] wgs84 = Ch1903.ch1903toWgs84to(x, y, 0);
 
-            // build intent's data
-            Uri.Builder uriBuilder = Uri.parse("content://ch.trillian.dufour.geocoder/").buildUpon();
-            uriBuilder.appendQueryParameter("longitude", String.valueOf(wgs84[0]));
-            uriBuilder.appendQueryParameter("latitude", String.valueOf(wgs84[1]));
-            
-            // prepare label
-            label = label.replaceAll("^<b>", "");
-            label = label.replaceAll("</b>", "");
-            String[] lines = label.split("<b>", 2);
-            
-            // build result row
-            cursor.addRow(new Object[] { i++, lines[0] != null ? lines[0] : "", lines.length > 1 && lines[1] != null ? lines[1] : "", uriBuilder.toString() });
-            
-          } catch (NumberFormatException e) {
-            Log.i(TAG, "parse location failed: " + e.getMessage());
-           continue;
-          }
+          // build intent's data
+          Uri.Builder uriBuilder = Uri.parse("content://ch.trillian.dufour.geocoder/").buildUpon();
+          uriBuilder.appendQueryParameter("longitude", String.valueOf(wgs84[0]));
+          uriBuilder.appendQueryParameter("latitude", String.valueOf(wgs84[1]));
           
-  
-        } catch (JSONException e) {
+          // prepare label
+          label = label.replaceAll("^<b>", "");
+          label = label.replaceAll("</b>", "");
+          String[] lines = label.split("<b>", 2);
+          
+          // build result row
+          cursor.addRow(new Object[] { i, lines[0] != null ? lines[0] : "", lines.length > 1 && lines[1] != null ? lines[1] : "", uriBuilder.toString() });
+            
+        } catch (Exception e) {
           Log.i(TAG, "parse location failed: " + e.getMessage());
+          continue;
         }
       }
       
@@ -154,11 +148,8 @@ public class SwissGeocoderProvider extends ContentProvider {
       Uri.Builder uriBuilder = Uri.parse(BASE_URL).buildUpon();
       uriBuilder.appendQueryParameter(LOCATION_PARAM, location);
       
-      // open http stream
+      // open HTTP stream
       URL url = new URL(uriBuilder.toString());
-      
-      Log.i(TAG, url.toString());
-
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
       connection.addRequestProperty("referer", "http://map.geo.admin.ch/");
       
@@ -169,7 +160,6 @@ public class SwissGeocoderProvider extends ContentProvider {
       StringBuilder builder = new StringBuilder ();
       while ((line = reader.readLine()) != null) {
           builder.append(line);
-          Log.i(TAG, line);
      }
       
       inputStream.close();
