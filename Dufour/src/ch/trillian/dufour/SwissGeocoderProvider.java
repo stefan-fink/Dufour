@@ -106,8 +106,11 @@ public class SwissGeocoderProvider extends ContentProvider {
           String[] coordinates = box.split(" ");
 
           if (!"sn25".equals(origin) && !"address".equals(origin)) {
+            Log.w(TAG, "skipped " + label);
             continue;
           }
+          
+          Log.i(TAG, "found " + label);
           
           try {
             double x = (Double.valueOf(coordinates[0]) + Double.valueOf(coordinates[2])) / 2d;
@@ -128,7 +131,8 @@ public class SwissGeocoderProvider extends ContentProvider {
             cursor.addRow(new Object[] { i++, lines[0] != null ? lines[0] : "", lines.length > 1 && lines[1] != null ? lines[1] : "", uriBuilder.toString() });
             
           } catch (NumberFormatException e) {
-            continue;
+            Log.i(TAG, "parse location failed: " + e.getMessage());
+           continue;
           }
           
   
@@ -150,10 +154,11 @@ public class SwissGeocoderProvider extends ContentProvider {
       Uri.Builder uriBuilder = Uri.parse(BASE_URL).buildUpon();
       uriBuilder.appendQueryParameter(LOCATION_PARAM, location);
       
-      
       // open http stream
       URL url = new URL(uriBuilder.toString());
       
+      Log.i(TAG, url.toString());
+
       HttpURLConnection connection = (HttpURLConnection) url.openConnection();
       connection.addRequestProperty("referer", "http://map.geo.admin.ch/");
       
@@ -164,7 +169,8 @@ public class SwissGeocoderProvider extends ContentProvider {
       StringBuilder builder = new StringBuilder ();
       while ((line = reader.readLine()) != null) {
           builder.append(line);
-      }
+          Log.i(TAG, line);
+     }
       
       inputStream.close();
       connection.disconnect();
