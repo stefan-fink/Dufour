@@ -97,10 +97,9 @@ public class MapActivity extends Activity {
     outState.putParcelable(KEY_POI_LOCATION, mapView.getPoiLocation());
     outState.putInt(KEY_LAYER_INDEX, mapView.getLayer().getIndex());
     outState.putFloat(KEY_SCALE, mapView.getScale());
-    outState.putBoolean(KEY_GPS_ENABLED, gpsWasEnabled);
+    outState.putBoolean(KEY_GPS_ENABLED, mapView.isGpsEnabled());
     outState.putBoolean(KEY_GPS_TRACKING, mapView.isGpsTracking());
     outState.putBoolean(KEY_SHOW_INFO, showInfo);
-    
   }
 
   @Override
@@ -132,6 +131,9 @@ public class MapActivity extends Activity {
     setGpsEnabled(false);
 
     tileLoader.onPause();
+
+    Log.w("TRILLIAN", "onStop() gpsWasEnabled=" + gpsWasEnabled);
+    Log.w("TRILLIAN", "onStop() gpsWasTracking=" + gpsWasTracking);
 
     super.onStop();
   }

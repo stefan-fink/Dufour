@@ -269,9 +269,12 @@ public class MapView extends View {
     public boolean onDoubleTap(MotionEvent e) {
 
       // reset viewport
-      if (gpsLastLocation != null) {
+      if (gpsLastLocation != null && !gpsTracking) {
         setGpsTracking(true);
         setLocation(gpsLastLocation);
+      } else if (poiLocation != null) {
+        setGpsTracking(false);
+        setLocation(poiLocation);
       }
       
       return true;
