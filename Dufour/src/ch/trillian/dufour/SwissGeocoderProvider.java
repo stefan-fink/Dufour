@@ -22,7 +22,7 @@ public class SwissGeocoderProvider extends ContentProvider {
 
   private static final String TAG = "GEOCODER";
   
-  private static final String BASE_URL = "http://map.geo.admin.ch/main/1392444380/rest/services/ech/SearchServer?type=locations&features=&lang=de";
+  private static final String BASE_URL = "http://api3.geo.admin.ch/rest/services/ech/SearchServer?type=locations&features=&lang=de";
   private static final String LOCATION_PARAM = "searchText";
   
   @Override
